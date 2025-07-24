@@ -1,0 +1,150 @@
+{
+  "id": null,
+  "uid": "sling-otel-sync",
+  "title": "Sling Sync - OTel Observability",
+  "tags": ["sling", "otel", "sync"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Sync Jobs (Last 24h)",
+      "description": "Total number of Sling sync jobs executed in the last 24 hours. Helps confirm job execution frequency and detect unexpected job halts.",
+      "datasource": {
+        "type": "greptimedb-traces",
+        "uid": "YOUR_TRACES_DATASOURCE_UID"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "SELECT count(*) FROM traces WHERE $__timeFilter(start_time) AND span_name='sling.sync.run'"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 }
+    },
+    {
+      "type": "piechart",
+      "title": "Sync Status Breakdown",
+      "description": "Distribution of sync job outcomes (success, failure, noop, backfill). Quickly assess reliability and job mode usage.",
+      "datasource": {
+        "type": "greptimedb-traces",
+        "uid": "YOUR_TRACES_DATASOURCE_UID"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "SELECT attributes.status, count(*) FROM traces WHERE $__timeFilter(start_time) AND span_name='sling.sync.run' GROUP BY attributes.status"
+        }
+      ],
+      "options": { "legend": { "displayMode": "table" } },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Sync Duration Trend",
+      "description": "Visualizes the runtime (in seconds) of each sync job over time. Detect performance regressions or unusual delays.",
+      "datasource": {
+        "type": "greptimedb-traces",
+        "uid": "YOUR_TRACES_DATASOURCE_UID"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "SELECT start_time AS time, attributes.duration_seconds AS value, attributes.sync_job_id FROM traces WHERE $__timeFilter(start_time) AND span_name='sling.sync.run'"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "links": [
+        {
+          "title": "View Related Logs",
+          "url": "/explore?left=%7B\"datasource\":\"YOUR_LOGS_DATASOURCE_UID\",\"queries\":[{\"query\":\"resource_attributes['sync_job_id']='${__value.fields.attributes.sync_job_id}'\"}]%7D",
+          "targetBlank": true
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Rows Synced Trend",
+      "description": "Shows how many rows each sync job processed. Helps validate expected data volume.",
+      "datasource": {
+        "type": "greptimedb-traces",
+        "uid": "YOUR_TRACES_DATASOURCE_UID"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "SELECT start_time AS time, attributes.rows_synced AS value, attributes.sync_job_id FROM traces WHERE $__timeFilter(start_time) AND span_name='sling.sync.run'"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "links": [
+        {
+          "title": "View Related Logs",
+          "url": "/explore?left=%7B\"datasource\":\"YOUR_LOGS_DATASOURCE_UID\",\"queries\":[{\"query\":\"resource_attributes['sync_job_id']='${__value.fields.attributes.sync_job_id}'\"}]%7D",
+          "targetBlank": true
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 }
+    },
+    {
+      "type": "table",
+      "title": "Recent Sync Logs",
+      "description": "Table view of recent Sling sync logs collected from OpenTelemetry logs. Click a row to jump to the related trace for deep analysis.",
+      "datasource": {
+        "type": "greptimedb-logs",
+        "uid": "YOUR_LOGS_DATASOURCE_UID"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "SELECT timestamp AS time, severity_text, body, resource_attributes['sync_job_id'] AS sync_job_id FROM logs WHERE $__timeFilter(timestamp) AND resource_attributes['service.name'] = 'sling-sync-wrapper' ORDER BY timestamp DESC LIMIT 50"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "time", "desc": true }]
+      },
+      "fieldConfig": { "defaults": {} },
+      "links": [
+        {
+          "title": "View Related Trace",
+          "url": "/explore?left=%7B\"datasource\":\"YOUR_TRACES_DATASOURCE_UID\",\"queries\":[{\"query\":\"attributes.sync_job_id='${__value.fields.sync_job_id}'\"}]%7D",
+          "targetBlank": true
+        }
+      ],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 12 }
+    },
+    {
+      "type": "text",
+      "title": "Trace Explorer",
+      "description": "Jump to the trace explorer to view full execution details for sync jobs.",
+      "options": {
+        "mode": "markdown",
+        "content": "[Open Trace Explorer](#/explore?left=%7B%22datasource%22:%22YOUR_TRACES_DATASOURCE_UID%22,%22queries%22:[%7B%22query%22:%22span_name='sling.sync.run'%22%7D]%7D)"
+      },
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 22 }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "status",
+        "label": "Sync Status",
+        "datasource": {
+          "type": "greptimedb-traces",
+          "uid": "YOUR_TRACES_DATASOURCE_UID"
+        },
+        "query": "SELECT DISTINCT attributes.status FROM traces WHERE span_name='sling.sync.run'",
+        "includeAll": true,
+        "multi": false,
+        "current": { "text": "All", "value": "" }
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" }
+}
