@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type SlingLogLine struct {
@@ -86,7 +87,7 @@ func main() {
 	}
 }
 
-func runPipeline(ctx context.Context, tracer sdktrace.Tracer, missionClusterID, pipeline, stateLocation, jobID, syncMode string, maxRetries int, backoffBase time.Duration) {
+func runPipeline(ctx context.Context, tracer trace.Tracer, missionClusterID, pipeline, stateLocation, jobID, syncMode string, maxRetries int, backoffBase time.Duration) {
 	ctx, span := tracer.Start(ctx, "sling.sync.run")
 	span.SetAttributes(
 		attribute.String("mission_cluster_id", missionClusterID),
@@ -144,7 +145,7 @@ func runPipeline(ctx context.Context, tracer sdktrace.Tracer, missionClusterID, 
 	log.Printf("Pipeline %s completed in %.2fs (rows: %d, status: %s)", pipeline, duration.Seconds(), rowsSynced, statusFromErr(lastErr))
 }
 
-func runSlingOnce(ctx context.Context, pipeline, stateLocation, jobID string, span sdktrace.Span) (int, error) {
+func runSlingOnce(ctx context.Context, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
 	cmd := exec.CommandContext(ctx, "sling", "sync", "--config", pipeline, "--log-format", "json")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("SLING_STATE=%s", stateLocation))
 
@@ -165,12 +166,12 @@ func runSlingOnce(ctx context.Context, pipeline, stateLocation, jobID string, sp
 		var logEntry SlingLogLine
 		if err := json.Unmarshal([]byte(line), &logEntry); err == nil {
 			span.AddEvent(logEntry.Message,
-				sdktrace.WithAttributes(attribute.String("log.level", logEntry.Level)))
+				trace.WithAttributes(attribute.String("log.level", logEntry.Level)))
 			if logEntry.Rows > 0 {
 				rowsSynced += logEntry.Rows
 			}
 			if logEntry.Error != "" {
-				span.RecordError(fmt.Errorf(logEntry.Error))
+				span.RecordError(fmt.Errorf("%s", logEntry.Error))
 			}
 		} else {
 			span.AddEvent(line)
