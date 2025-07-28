@@ -1,0 +1,20 @@
+replicaCount: 1
+image:
+  repository: registry.local/sling-sync-wrapper
+  tag: latest
+  pullPolicy: IfNotPresent
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+missionClusterId: "mission-01"
+pipelineDir: "/etc/sling/pipelines"
+slingState: "greptimedb://greptimedb:4001/sling_state"
+otelExporterEndpoint: "otel-collector:4317"
+syncMode: "normal"
+syncMaxRetries: 3
+syncBackoffBase: "5s"
+schedule: "*/5 * * * *"

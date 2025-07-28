@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sling-pipelines-config
+data:
+  pipeline1.yaml: |
+    source:
+      type: postgres
+      connection: "postgres://user:pass@mission-db:5432/dbname"
+      table: drone_telemetry
+      incremental_column: ts
+    target:
+      type: postgres
+      connection: "postgres://user:pass@command-db:5432/dbname"
+      table: drone_telemetry
+    transforms:
+      - add_column:
+          name: synced_from
+          value: "{{ .Values.missionClusterId }}"
+      - add_column:
+          name: synced_at
+          value: "{{ now }}"
+      - add_column:
+          name: synced_id
+          value: "{{ .Release.Name }}"
+    options:
+      on_conflict: skip
+  pipeline2.yaml: |
+    source:
+      type: postgres
+      connection: "postgres://user:pass@other-mission-db:5432/dbname"
+      table: drone_telemetry
+      incremental_column: ts
+    target:
+      type: postgres
+      connection: "postgres://user:pass@command-db:5432/dbname"
+      table: drone_telemetry
+    transforms:
+      - add_column:
+          name: synced_from
+          value: "{{ .Values.missionClusterId }}"
+      - add_column:
+          name: synced_at
+          value: "{{ now }}"
+      - add_column:
+          name: synced_id
+          value: "{{ .Release.Name }}"
+    options:
+      on_conflict: skip

@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-sling-sync
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            job: sling-sync
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+          - name: sling-sync-wrapper
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            env:
+            - name: MISSION_CLUSTER_ID
+              value: {{ .Values.missionClusterId | quote }}
+            - name: PIPELINE_DIR
+              value: {{ .Values.pipelineDir | quote }}
+            - name: SLING_STATE
+              value: {{ .Values.slingState | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.otelExporterEndpoint | quote }}
+            - name: SYNC_MODE
+              value: {{ .Values.syncMode | quote }}
+            - name: SYNC_MAX_RETRIES
+              value: {{ .Values.syncMaxRetries | quote }}
+            - name: SYNC_BACKOFF_BASE
+              value: {{ .Values.syncBackoffBase | quote }}
+            volumeMounts:
+            - name: sling-pipelines
+              mountPath: {{ .Values.pipelineDir | quote }}
+            resources:
+              requests:
+                cpu: {{ .Values.resources.requests.cpu | quote }}
+                memory: {{ .Values.resources.requests.memory | quote }}
+              limits:
+                cpu: {{ .Values.resources.limits.cpu | quote }}
+                memory: {{ .Values.resources.limits.memory | quote }}
+          volumes:
+          - name: sling-pipelines
+            configMap:
+              name: sling-pipelines-config
