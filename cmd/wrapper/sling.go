@@ -12,6 +12,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var execCommandContext = exec.CommandContext
+
 // SlingLogLine represents a single JSON log entry from the Sling CLI.
 type SlingLogLine struct {
 	Level   string `json:"level"`
@@ -21,7 +23,7 @@ type SlingLogLine struct {
 }
 
 func runSlingOnce(ctx context.Context, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
-	cmd := exec.CommandContext(ctx, "sling", "sync", "--config", pipeline, "--log-format", "json")
+	cmd := execCommandContext(ctx, "sling", "sync", "--config", pipeline, "--log-format", "json")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("SLING_STATE=%s", stateLocation))
 
 	stdout, err := cmd.StdoutPipe()

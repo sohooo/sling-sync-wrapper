@@ -15,6 +15,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var runSlingOnceFunc = runSlingOnce
+
 func main() {
 	ctx := context.Background()
 
@@ -66,7 +68,7 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 	var lastErr error
 	var rowsSynced int
 	for attempt := 1; attempt <= cfg.MaxRetries; attempt++ {
-		rows, err := runSlingOnce(ctx, pipeline, cfg.StateLocation, jobID, span)
+		rows, err := runSlingOnceFunc(ctx, pipeline, cfg.StateLocation, jobID, span)
 		rowsSynced += rows
 		if err == nil {
 			lastErr = nil
