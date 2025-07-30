@@ -16,7 +16,7 @@ import (
 
 func TestRunPipelineNoop(t *testing.T) {
 	var called bool
-	runSlingOnceFunc = func(ctx context.Context, pipeline, state, jobID string, span trace.Span) (int, error) {
+	runSlingOnceFunc = func(ctx context.Context, bin, pipeline, state, jobID string, span trace.Span) (int, error) {
 		called = true
 		return 0, nil
 	}

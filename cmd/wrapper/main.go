@@ -68,7 +68,7 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 	var lastErr error
 	var rowsSynced int
 	for attempt := 1; attempt <= cfg.MaxRetries; attempt++ {
-		rows, err := runSlingOnceFunc(ctx, pipeline, cfg.StateLocation, jobID, span)
+		rows, err := runSlingOnceFunc(ctx, cfg.SlingBinary, pipeline, cfg.StateLocation, jobID, span)
 		rowsSynced += rows
 		if err == nil {
 			lastErr = nil

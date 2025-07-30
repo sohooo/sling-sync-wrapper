@@ -22,8 +22,8 @@ type SlingLogLine struct {
 	Error   string `json:"error,omitempty"`
 }
 
-func runSlingOnce(ctx context.Context, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
-	cmd := execCommandContext(ctx, "sling", "sync", "--config", pipeline, "--log-format", "json")
+func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
+	cmd := execCommandContext(ctx, slingBin, "sync", "--config", pipeline, "--log-format", "json")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("SLING_STATE=%s", stateLocation))
 
 	stdout, err := cmd.StdoutPipe()

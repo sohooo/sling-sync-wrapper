@@ -28,6 +28,9 @@ func TestFromEnvDefaults(t *testing.T) {
 	if cfg.BackoffBase != 5*time.Second {
 		t.Errorf("unexpected default backoff: %s", cfg.BackoffBase)
 	}
+	if cfg.SlingBinary != "sling" {
+		t.Errorf("unexpected default sling binary: %s", cfg.SlingBinary)
+	}
 }
 
 func TestFromEnvOverrides(t *testing.T) {
@@ -38,6 +41,7 @@ func TestFromEnvOverrides(t *testing.T) {
 	t.Setenv("SYNC_MODE", "backfill")
 	t.Setenv("SYNC_MAX_RETRIES", "5")
 	t.Setenv("SYNC_BACKOFF_BASE", "2s")
+	t.Setenv("SLING_BIN", "/usr/local/bin/sling")
 
 	cfg := FromEnv()
 	if cfg.MissionClusterID != "mc1" || cfg.PipelineFile != "pipeline.yaml" {
@@ -51,6 +55,9 @@ func TestFromEnvOverrides(t *testing.T) {
 	}
 	if cfg.OTELEndpoint != "otel:4317" {
 		t.Errorf("unexpected otel endpoint: %s", cfg.OTELEndpoint)
+	}
+	if cfg.SlingBinary != "/usr/local/bin/sling" {
+		t.Errorf("unexpected sling binary: %s", cfg.SlingBinary)
 	}
 }
 
