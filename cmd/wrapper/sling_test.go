@@ -44,7 +44,7 @@ func TestRunSlingOnceEvents(t *testing.T) {
 
 	ctx := context.Background()
 	ctx, span := tracer.Start(ctx, "run")
-	rows, err := runSlingOnce(ctx, "pipe.yaml", "state", "job", span)
+	rows, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span)
 	span.End()
 	if err != nil {
 		t.Fatalf("runSlingOnce error: %v", err)

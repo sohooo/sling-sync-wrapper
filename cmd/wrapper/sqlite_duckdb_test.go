@@ -62,7 +62,7 @@ func TestSQLiteToDuckDBSync(t *testing.T) {
 
 	cfg := config.Config{MissionClusterID: "mc", StateLocation: filepath.Join(tmp, "state"), SyncMode: "normal", MaxRetries: 1, BackoffBase: time.Millisecond}
 
-	runSlingOnceFunc = func(ctx context.Context, pipeline, state, jobID string, span trace.Span) (int, error) {
+	runSlingOnceFunc = func(ctx context.Context, bin, pipeline, state, jobID string, span trace.Span) (int, error) {
 		src, err := sql.Open("sqlite3", missionPath)
 		if err != nil {
 			return 0, err
@@ -188,7 +188,7 @@ func TestSQLiteTwoMissionDBsToDuckDB(t *testing.T) {
 
 	var srcPath string
 	var currentMission string
-	runSlingOnceFunc = func(ctx context.Context, pipeline, state, jobID string, span trace.Span) (int, error) {
+	runSlingOnceFunc = func(ctx context.Context, bin, pipeline, state, jobID string, span trace.Span) (int, error) {
 		src, err := sql.Open("sqlite3", srcPath)
 		if err != nil {
 			return 0, err

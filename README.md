@@ -112,6 +112,7 @@ This will deploy:
 - `SYNC_MAX_RETRIES` → number of retries (default 3).
 - `SYNC_BACKOFF_BASE` → backoff base (default 5s).
 - `OTEL_EXPORTER_OTLP_ENDPOINT` → OTel Collector endpoint (default otel-collector:4317).
+- `SLING_BIN` → path to the Sling CLI binary (default `sling`).
 
 ## Grafana Dashboard
 

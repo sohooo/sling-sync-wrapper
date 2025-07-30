@@ -17,6 +17,7 @@ type Config struct {
 	SyncMode         string
 	MaxRetries       int
 	BackoffBase      time.Duration
+	SlingBinary      string
 }
 
 // FromEnv constructs a Config from environment variables.
@@ -30,6 +31,7 @@ func FromEnv() Config {
 		SyncMode:         getEnv("SYNC_MODE", "normal"),
 		MaxRetries:       getEnvInt("SYNC_MAX_RETRIES", 3),
 		BackoffBase:      getEnvDuration("SYNC_BACKOFF_BASE", 5*time.Second),
+		SlingBinary:      getEnv("SLING_BIN", "sling"),
 	}
 }
 
