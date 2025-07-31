@@ -20,3 +20,6 @@ run-local:
 	OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317 \
 	./bin/$(APP_NAME)
 
+
+quickstart:
+	go run ./cmd/quickstart

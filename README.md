@@ -51,6 +51,25 @@ The collected telemetry is stored in GreptimeDB and visualized via Grafana.
      └─────────┘
 ```
 
+## QUICKSTART
+
+The quickstart synchronizes two sample SQLite mission databases into a single
+DuckDB command database. It generates realistic drone telemetry, writes simple
+Sling pipeline files and performs a sync just like the integration test
+`sqlite_duckdb_test.go`.
+
+Run everything with one command:
+
+```bash
+make quickstart
+```
+
+After the command finishes you will find the databases and pipelines under the
+`quickstart/` directory and a `command.db` file populated with telemetry from
+both missions. Inspect the YAML files in `quickstart/pipelines/` to see how a
+minimal `SLING_CONFIG` looks. From here you can adjust the pipelines or point
+the wrapper at your own databases.
+
 ## Quickstart (Local)
 
 ### Prerequisites
