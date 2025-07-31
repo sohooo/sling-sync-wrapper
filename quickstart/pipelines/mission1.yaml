@@ -1,0 +1,18 @@
+source:
+  type: sqlite
+  connection: ./quickstart/mission1.db
+  table: telemetry
+  incremental_column: ts
+target:
+  type: duckdb
+  connection: ./quickstart/command.db
+  table: telemetry
+transforms:
+  - add_column:
+      name: synced_from
+      value: mission1
+  - add_column:
+      name: synced_at
+      value: "{{ now }}"
+options:
+  on_conflict: skip
