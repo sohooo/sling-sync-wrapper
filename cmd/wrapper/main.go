@@ -15,7 +15,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var runSlingOnceFunc = runSlingOnce
+var (
+	runSlingOnceFunc = runSlingOnce
+	sleepFunc        = time.Sleep
+)
 
 func main() {
 	ctx := context.Background()
@@ -75,9 +78,9 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 			break
 		}
 		lastErr = err
-		wait := time.Duration(attempt) * cfg.BackoffBase
+		wait := cfg.BackoffBase * time.Duration(1<<uint(attempt-1))
 		log.Printf("Attempt %d failed: %v, retrying in %s", attempt, err, wait)
-		time.Sleep(wait)
+		sleepFunc(wait)
 	}
 
 	duration := time.Since(startTime)
