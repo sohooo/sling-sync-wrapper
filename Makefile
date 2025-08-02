@@ -23,3 +23,6 @@ run-local:
 
 quickstart:
 	go run ./cmd/quickstart
+
+test:
+	go test ./...
