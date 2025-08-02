@@ -90,7 +90,7 @@ go build -o sling-sync-wrapper ./cmd/wrapper
 MISSION_CLUSTER_ID=mission-01 \
 SYNC_JOB_ID=$(uuidgen) \
 SLING_CONFIG=./pipeline.yaml \
-SLING_STATE_PATH=./sling_state \
+SLING_STATE=file://./sling_state.json \
 OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317 \
 ./sling-sync-wrapper
 ```
@@ -127,7 +127,7 @@ This will deploy:
 - `MISSION_CLUSTER_ID` (required) → source cluster identifier.
 - `PIPELINE_DIR` → directory with multiple pipelines (default /etc/sling/pipelines).
 - `SYNC_MODE` → "" (incremental), noop, backfill.
-- `SLING_STATE_PATH` → path to sync state (default /var/lib/sling_state).
+- `SLING_STATE` → path or URL to sync state (default `file://./sling_state.json`).
 - `SYNC_MAX_RETRIES` → number of retries (default 3).
 - `SYNC_BACKOFF_BASE` → backoff base (default 5s).
 - `OTEL_EXPORTER_OTLP_ENDPOINT` → OTel Collector endpoint (default otel-collector:4317).
