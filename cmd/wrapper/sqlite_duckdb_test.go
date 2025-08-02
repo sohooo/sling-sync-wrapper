@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,9 +12,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
 	"sling-sync-wrapper/internal/config"
-
-	_ "github.com/marcboeker/go-duckdb"
-	_ "github.com/mattn/go-sqlite3"
+	"sling-sync-wrapper/internal/sampledb"
 )
 
 func TestSQLiteToDuckDBSync(t *testing.T) {
@@ -28,30 +25,8 @@ func TestSQLiteToDuckDBSync(t *testing.T) {
 	commandPath := filepath.Join(tmp, "command.db")
 	pipelinePath := filepath.Join(tmp, "pipeline.yaml")
 
-	mission, err := sql.Open("sqlite3", missionPath)
-	if err != nil {
-		t.Fatalf("open mission: %v", err)
-	}
-	defer mission.Close()
-
-	_, err = mission.Exec(`create table telemetry (
-        cluster_id text,
-        drone_id text,
-        lat real,
-        lon real,
-        alt real,
-        battery real,
-        status text,
-        ts text
-    )`)
-	if err != nil {
-		t.Fatalf("create table: %v", err)
-	}
-
-	_, err = mission.Exec(`insert into telemetry values (?,?,?,?,?,?,?,?)`,
-		"mission-01", "recon-swarm-123456-A", 48.2023, 16.4098, 100.5, 99.5, "ok", "2025-07-23T12:34:56Z")
-	if err != nil {
-		t.Fatalf("insert: %v", err)
+	if err := sampledb.CreateMissionDB(missionPath, "mission-01", 1); err != nil {
+		t.Fatalf("create mission db: %v", err)
 	}
 
 	os.WriteFile(pipelinePath, []byte(""), 0644)
@@ -63,51 +38,10 @@ func TestSQLiteToDuckDBSync(t *testing.T) {
 	cfg := config.Config{MissionClusterID: "mc", StateLocation: filepath.Join(tmp, "state"), SyncMode: "normal", MaxRetries: 1, BackoffBase: time.Millisecond}
 
 	runSlingOnceFunc = func(ctx context.Context, bin, pipeline, state, jobID string, span trace.Span) (int, error) {
-		src, err := sql.Open("sqlite3", missionPath)
-		if err != nil {
+		if err := sampledb.EnsureCommandTable(commandPath, false); err != nil {
 			return 0, err
 		}
-		defer src.Close()
-
-		dst, err := sql.Open("duckdb", commandPath)
-		if err != nil {
-			return 0, err
-		}
-		defer dst.Close()
-
-		_, err = dst.Exec(`create table if not exists telemetry (
-            cluster_id text,
-            drone_id text,
-            lat real,
-            lon real,
-            alt real,
-            battery real,
-            status text,
-            ts text
-        )`)
-		if err != nil {
-			return 0, err
-		}
-
-		rows, err := src.Query(`select cluster_id, drone_id, lat, lon, alt, battery, status, ts from telemetry`)
-		if err != nil {
-			return 0, err
-		}
-		defer rows.Close()
-
-		count := 0
-		for rows.Next() {
-			var cID, dID, status, ts string
-			var lat, lon, alt, battery float64
-			if err := rows.Scan(&cID, &dID, &lat, &lon, &alt, &battery, &status, &ts); err != nil {
-				return count, err
-			}
-			if _, err := dst.Exec(`insert into telemetry values (?,?,?,?,?,?,?,?)`, cID, dID, lat, lon, alt, battery, status, ts); err != nil {
-				return count, err
-			}
-			count++
-		}
-		return count, rows.Err()
+		return sampledb.Sync(missionPath, commandPath, "", false)
 	}
 	defer func() { runSlingOnceFunc = runSlingOnce }()
 
@@ -146,41 +80,12 @@ func TestSQLiteTwoMissionDBsToDuckDB(t *testing.T) {
 	os.WriteFile(pipeline1, []byte(""), 0644)
 	os.WriteFile(pipeline2, []byte(""), 0644)
 
-	createMissionDB := func(path, cluster string) *sql.DB {
-		db, err := sql.Open("sqlite3", path)
-		if err != nil {
-			t.Fatalf("open %s: %v", path, err)
-		}
-		t.Cleanup(func() { db.Close() })
-
-		_, err = db.Exec(`create table telemetry (
-            cluster_id text,
-            drone_id text,
-            lat real,
-            lon real,
-            alt real,
-            battery real,
-            status text,
-            ts text
-       )`)
-		if err != nil {
-			t.Fatalf("create table: %v", err)
-		}
-
-		for i := 0; i < 5; i++ {
-			_, err := db.Exec(`insert into telemetry values (?,?,?,?,?,?,?,?)`,
-				cluster, fmt.Sprintf("drone-%s-%d", cluster, i),
-				48.0+float64(i), 16.0+float64(i), 100.0+float64(i),
-				95.0, "ok", fmt.Sprintf("2025-07-23T12:34:%02dZ", i))
-			if err != nil {
-				t.Fatalf("insert: %v", err)
-			}
-		}
-		return db
+	if err := sampledb.CreateMissionDB(mission1Path, "mission1", 5); err != nil {
+		t.Fatalf("create mission1: %v", err)
 	}
-
-	createMissionDB(mission1Path, "mission1")
-	createMissionDB(mission2Path, "mission2")
+	if err := sampledb.CreateMissionDB(mission2Path, "mission2", 5); err != nil {
+		t.Fatalf("create mission2: %v", err)
+	}
 
 	sr := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
@@ -191,53 +96,10 @@ func TestSQLiteTwoMissionDBsToDuckDB(t *testing.T) {
 	var srcPath string
 	var currentMission string
 	runSlingOnceFunc = func(ctx context.Context, bin, pipeline, state, jobID string, span trace.Span) (int, error) {
-		src, err := sql.Open("sqlite3", srcPath)
-		if err != nil {
+		if err := sampledb.EnsureCommandTable(commandPath, true); err != nil {
 			return 0, err
 		}
-		defer src.Close()
-
-		dst, err := sql.Open("duckdb", commandPath)
-		if err != nil {
-			return 0, err
-		}
-		defer dst.Close()
-
-		_, err = dst.Exec(`create table if not exists telemetry (
-            cluster_id text,
-            drone_id text,
-            lat real,
-            lon real,
-            alt real,
-            battery real,
-            status text,
-            ts text,
-            synced_from text
-       )`)
-		if err != nil {
-			return 0, err
-		}
-
-		rows, err := src.Query(`select cluster_id, drone_id, lat, lon, alt, battery, status, ts from telemetry`)
-		if err != nil {
-			return 0, err
-		}
-		defer rows.Close()
-
-		count := 0
-		for rows.Next() {
-			var cID, dID, status, ts string
-			var lat, lon, alt, battery float64
-			if err := rows.Scan(&cID, &dID, &lat, &lon, &alt, &battery, &status, &ts); err != nil {
-				return count, err
-			}
-			if _, err := dst.Exec(`insert into telemetry values (?,?,?,?,?,?,?,?,?)`,
-				cID, dID, lat, lon, alt, battery, status, ts, currentMission); err != nil {
-				return count, err
-			}
-			count++
-		}
-		return count, rows.Err()
+		return sampledb.Sync(srcPath, commandPath, currentMission, true)
 	}
 	defer func() { runSlingOnceFunc = runSlingOnce }()
 
