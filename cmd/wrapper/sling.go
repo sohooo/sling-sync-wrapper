@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -22,9 +24,15 @@ type SlingLogLine struct {
 	Error   string `json:"error,omitempty"`
 }
 
-const maxScanTokenSize = 1024 * 1024 // 1 MiB
+const (
+	maxScanTokenSize = 1024 * 1024 // 1 MiB
+	slingCLITimeout  = 30 * time.Minute
+)
 
 func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
+	ctx, cancel := context.WithTimeout(ctx, slingCLITimeout)
+	defer cancel()
+
 	cmd := execCommandContext(ctx, slingBin, "sync", "--config", pipeline, "--log-format", "json")
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("SLING_STATE=%s", stateLocation),
@@ -59,7 +67,10 @@ func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID 
 				span.RecordError(fmt.Errorf("%s", logEntry.Error))
 			}
 		} else {
-			span.AddEvent(line)
+			log.Printf("failed to parse Sling log line: %v", err)
+			span.RecordError(err)
+			span.AddEvent("invalid JSON log line",
+				trace.WithAttributes(attribute.String("line", line)))
 		}
 	}
 
@@ -69,7 +80,13 @@ func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID 
 	}
 
 	if err := cmd.Wait(); err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return rowsSynced, ctxErr
+		}
 		return rowsSynced, err
+	}
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return rowsSynced, ctxErr
 	}
 	return rowsSynced, nil
 }

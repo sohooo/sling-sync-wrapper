@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -145,5 +147,70 @@ func TestRunSlingOnceEnvironmentVariables(t *testing.T) {
 		if !found {
 			t.Errorf("expected environment variable %q not found", w)
 		}
+	}
+}
+
+func TestRunSlingOnceInvalidJSON(t *testing.T) {
+	dir := t.TempDir()
+	script := filepath.Join(dir, "sling")
+	content := "#!/bin/sh\necho 'not json'\n"
+	if err := os.WriteFile(script, []byte(content), 0755); err != nil {
+		t.Fatalf("script: %v", err)
+	}
+	execCommandContext = fakeExecCommandContext(script)
+	defer func() { execCommandContext = exec.CommandContext }()
+
+	sr := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
+	tracer := tp.Tracer("test")
+
+	ctx := context.Background()
+	ctx, span := tracer.Start(ctx, "run")
+	if _, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span); err != nil {
+		t.Fatalf("runSlingOnce error: %v", err)
+	}
+	span.End()
+
+	ended := sr.Ended()
+	if len(ended) != 1 {
+		t.Fatalf("expected one span, got %d", len(ended))
+	}
+	events := ended[0].Events()
+	found := false
+	for _, e := range events {
+		if e.Name == "invalid JSON log line" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected invalid JSON log line event, got %v", events)
+	}
+}
+
+func TestRunSlingOnceTimeout(t *testing.T) {
+	dir := t.TempDir()
+	script := filepath.Join(dir, "sling")
+	content := "#!/bin/sh\nsleep 5\n"
+	if err := os.WriteFile(script, []byte(content), 0755); err != nil {
+		t.Fatalf("script: %v", err)
+	}
+	execCommandContext = fakeExecCommandContext(script)
+	defer func() { execCommandContext = exec.CommandContext }()
+
+	sr := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
+	tracer := tp.Tracer("test")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	ctx, span := tracer.Start(ctx, "run")
+	_, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span)
+	span.End()
+	if err == nil {
+		t.Fatalf("expected timeout error")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected deadline exceeded error, got %v", err)
 	}
 }
