@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -31,7 +32,9 @@ func TestRunPipelineNoop(t *testing.T) {
 	defer log.SetOutput(os.Stderr)
 
 	cfg := config.Config{MissionClusterID: "mc", StateLocation: "state", SyncMode: "noop", MaxRetries: 1, BackoffBase: time.Millisecond}
-	runPipeline(context.Background(), tracer, cfg, "pipe.yaml", "job1")
+	if err := runPipeline(context.Background(), tracer, cfg, "pipe.yaml", "job1"); err != nil {
+		t.Fatalf("runPipeline returned error: %v", err)
+	}
 
 	if called {
 		t.Fatalf("runSlingOnce should not be called in noop mode")
@@ -51,5 +54,18 @@ func TestRunPipelineNoop(t *testing.T) {
 	}
 	if !bytes.Contains(buf.Bytes(), []byte("[NOOP]")) {
 		t.Errorf("noop log not produced")
+	}
+}
+
+func TestRunPipelineReturnsError(t *testing.T) {
+	runSlingOnceFunc = func(ctx context.Context, bin, pipeline, state, jobID string, span trace.Span) (int, error) {
+		return 0, fmt.Errorf("boom")
+	}
+	defer func() { runSlingOnceFunc = runSlingOnce }()
+
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cfg := config.Config{MissionClusterID: "mc", StateLocation: "state", SyncMode: "normal", MaxRetries: 2, BackoffBase: time.Millisecond}
+	if err := runPipeline(context.Background(), tracer, cfg, "pipe.yaml", "job1"); err == nil {
+		t.Fatalf("expected error from runPipeline")
 	}
 }

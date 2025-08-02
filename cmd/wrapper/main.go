@@ -33,15 +33,21 @@ func main() {
 	tracer, shutdown := tracing.Init(ctx, "sling-sync-wrapper", cfg.MissionClusterID, cfg.OTELEndpoint)
 	defer shutdown(ctx)
 
+	var failed bool
 	for _, pipeline := range pipelines {
 		jobID := uuid.NewString()
 		os.Setenv("SYNC_JOB_ID", jobID)
 		os.Setenv("SLING_CONFIG", pipeline)
-		runPipeline(ctx, tracer, cfg, pipeline, jobID)
+		if err := runPipeline(ctx, tracer, cfg, pipeline, jobID); err != nil {
+			failed = true
+		}
+	}
+	if failed {
+		os.Exit(1)
 	}
 }
 
-func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pipeline, jobID string) {
+func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pipeline, jobID string) error {
 	ctx, span := tracer.Start(ctx, "sling.sync.run")
 	defer span.End()
 
@@ -58,7 +64,7 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 	if cfg.SyncMode == "noop" {
 		log.Printf("[NOOP] Would run Sling pipeline %s", pipeline)
 		span.SetAttributes(attribute.String("status", "noop"))
-		return
+		return nil
 	}
 
 	if cfg.SyncMode == "backfill" {
@@ -96,4 +102,5 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 	}
 
 	log.Printf("Pipeline %s completed in %.2fs (rows: %d, status: %s)", pipeline, duration.Seconds(), rowsSynced, statusFromErr(lastErr))
+	return lastErr
 }
