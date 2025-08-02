@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -90,8 +91,9 @@ func TestPipelinesDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(files) != 2 {
-		t.Fatalf("expected 2 files, got %v", files)
+	expected := []string{f1, f2}
+	if !reflect.DeepEqual(files, expected) {
+		t.Fatalf("expected %v, got %v", expected, files)
 	}
 }
 
@@ -99,6 +101,14 @@ func TestPipelinesMissing(t *testing.T) {
 	_, err := Pipelines(Config{})
 	if err == nil {
 		t.Fatalf("expected error for missing config")
+	}
+}
+
+func TestPipelinesEmptyDir(t *testing.T) {
+	dir := t.TempDir()
+	_, err := Pipelines(Config{PipelineDir: dir})
+	if err == nil {
+		t.Fatalf("expected error for empty pipeline dir")
 	}
 }
 
