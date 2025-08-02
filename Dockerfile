@@ -1,5 +1,6 @@
 # Build stage
-FROM golang:1.22 as builder
+# Build stage uses Go 1.24 to match go.mod
+FROM golang:1.24 as builder
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
