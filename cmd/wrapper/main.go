@@ -36,8 +36,6 @@ func main() {
 	var failed bool
 	for _, pipeline := range pipelines {
 		jobID := uuid.NewString()
-		os.Setenv("SYNC_JOB_ID", jobID)
-		os.Setenv("SLING_CONFIG", pipeline)
 		if err := runPipeline(ctx, tracer, cfg, pipeline, jobID); err != nil {
 			failed = true
 		}

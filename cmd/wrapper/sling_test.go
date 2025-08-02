@@ -98,3 +98,52 @@ func TestRunSlingOnceLongLogLine(t *testing.T) {
 		t.Fatalf("event truncated: expected len %d, got %d", len(longMsg), len(got))
 	}
 }
+
+func TestRunSlingOnceEnvironmentVariables(t *testing.T) {
+	dir := t.TempDir()
+	script, err := writeScript(dir)
+	if err != nil {
+		t.Fatalf("script: %v", err)
+	}
+
+	var capturedCmd *exec.Cmd
+	execCommandContext = func(ctx context.Context, command string, args ...string) *exec.Cmd {
+		capturedCmd = exec.CommandContext(ctx, script)
+		return capturedCmd
+	}
+	defer func() { execCommandContext = exec.CommandContext }()
+
+	sr := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
+	tracer := tp.Tracer("test")
+
+	ctx := context.Background()
+	ctx, span := tracer.Start(ctx, "run")
+	if _, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span); err != nil {
+		t.Fatalf("runSlingOnce error: %v", err)
+	}
+	span.End()
+
+	if capturedCmd == nil {
+		t.Fatal("execCommandContext was not called")
+	}
+
+	env := capturedCmd.Env
+	want := []string{
+		"SLING_STATE=state",
+		"SYNC_JOB_ID=job",
+		"SLING_CONFIG=pipe.yaml",
+	}
+	for _, w := range want {
+		found := false
+		for _, e := range env {
+			if e == w {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected environment variable %q not found", w)
+		}
+	}
+}
