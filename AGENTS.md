@@ -27,6 +27,9 @@ These guidelines apply to the entire repository.
   make build
   ```
 - Additional useful commands from the Makefile:
+  - `make fmt` – format Go code.
+  - `make vet` – run static analysis.
+  - `make tidy` – tidy module dependencies.
   - `make docker` – build the container image.
   - `make push` – push the image to the registry.
   - `make run-local` – run the wrapper locally using default env vars.

@@ -155,6 +155,17 @@ A pre-built Grafana dashboard is provided:
 
 ## Development
 
+### Maintenance
+
+Common development tasks are available via the Makefile:
+
+```bash
+make fmt   # format Go code
+make vet   # run go vet
+make tidy  # tidy module dependencies
+make test  # run unit tests
+```
+
 Run locally with multiple pipelines
 
 ```bash

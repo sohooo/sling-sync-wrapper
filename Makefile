@@ -24,5 +24,14 @@ run-local:
 quickstart:
 	go run ./cmd/quickstart
 
+fmt:
+	go fmt ./...
+
+vet:
+	go vet ./...
+
+tidy:
+	go mod tidy
+
 test:
 	go test ./...
