@@ -33,3 +33,10 @@ These guidelines apply to the entire repository.
   - `make quickstart` – run the quickstart example.
 
 Ensure tests pass before opening a pull request.
+
+Additional guidelines:
+
+- When making changes, update all relevant documentation, configuration files, Helm charts, and similar assets.
+- Write multiple robust tests to verify the behavior.
+- Verify the changes by executing the full test suite.
+- Use Conventional Commit formatting for commit messages when creating a pull request.
