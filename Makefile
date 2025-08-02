@@ -1,5 +1,6 @@
 APP_NAME = sling-sync-wrapper
 REGISTRY = registry.local
+SLING_CLI_VERSION ?= latest
 
 all: build
 
@@ -23,6 +24,9 @@ run-local:
 
 quickstart:
 	go run ./cmd/quickstart
+
+install-sling-cli:
+	go install github.com/slingdata/sling-cli@$(SLING_CLI_VERSION)
 
 fmt:
 	go fmt ./...
