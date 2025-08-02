@@ -26,8 +26,9 @@ type SlingLogLine struct {
 
 const (
 	maxScanTokenSize = 1024 * 1024 // 1 MiB
-	slingCLITimeout  = 30 * time.Minute
 )
+
+var slingCLITimeout = 30 * time.Minute
 
 func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
 	ctx, cancel := context.WithTimeout(ctx, slingCLITimeout)

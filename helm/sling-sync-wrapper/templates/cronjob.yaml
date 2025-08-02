@@ -36,6 +36,8 @@ spec:
               value: {{ .Values.syncMaxRetries | quote }}
             - name: SYNC_BACKOFF_BASE
               value: {{ .Values.syncBackoffBase | quote }}
+            - name: SLING_TIMEOUT
+              value: {{ .Values.slingTimeout | quote }}
             volumeMounts:
             - name: sling-pipelines
               mountPath: {{ .Values.pipelineDir | quote }}

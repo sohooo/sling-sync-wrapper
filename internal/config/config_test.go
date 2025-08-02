@@ -31,6 +31,9 @@ func TestFromEnvDefaults(t *testing.T) {
 	if cfg.SlingBinary != "sling" {
 		t.Errorf("unexpected default sling binary: %s", cfg.SlingBinary)
 	}
+	if cfg.SlingTimeout != 30*time.Minute {
+		t.Errorf("unexpected default sling timeout: %s", cfg.SlingTimeout)
+	}
 }
 
 func TestFromEnvOverrides(t *testing.T) {
@@ -42,6 +45,7 @@ func TestFromEnvOverrides(t *testing.T) {
 	t.Setenv("SYNC_MAX_RETRIES", "5")
 	t.Setenv("SYNC_BACKOFF_BASE", "2s")
 	t.Setenv("SLING_BIN", "/usr/local/bin/sling")
+	t.Setenv("SLING_TIMEOUT", "10s")
 
 	cfg := FromEnv()
 	if cfg.MissionClusterID != "mc1" || cfg.PipelineFile != "pipeline.yaml" {
@@ -58,6 +62,9 @@ func TestFromEnvOverrides(t *testing.T) {
 	}
 	if cfg.SlingBinary != "/usr/local/bin/sling" {
 		t.Errorf("unexpected sling binary: %s", cfg.SlingBinary)
+	}
+	if cfg.SlingTimeout != 10*time.Second {
+		t.Errorf("unexpected sling timeout: %s", cfg.SlingTimeout)
 	}
 }
 
