@@ -94,3 +94,22 @@ func TestPipelinesMissing(t *testing.T) {
 		t.Fatalf("expected error for missing config")
 	}
 }
+
+func TestGetEnvInt(t *testing.T) {
+	const key = "TEST_ENV_INT"
+
+	os.Unsetenv(key)
+	if got := getEnvInt(key, 42); got != 42 {
+		t.Fatalf("expected fallback 42, got %d", got)
+	}
+
+	t.Setenv(key, "7")
+	if got := getEnvInt(key, 42); got != 7 {
+		t.Fatalf("expected 7, got %d", got)
+	}
+
+	t.Setenv(key, "notanint")
+	if got := getEnvInt(key, 42); got != 42 {
+		t.Fatalf("expected fallback 42 on invalid int, got %d", got)
+	}
+}
