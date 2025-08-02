@@ -6,6 +6,9 @@ import (
 	"os"
 	"time"
 
+	"net/url"
+	"path/filepath"
+
 	"github.com/google/uuid"
 
 	"sling-sync-wrapper/internal/config"
@@ -18,6 +21,7 @@ import (
 var (
 	runSlingOnceFunc = runSlingOnce
 	sleepFunc        = time.Sleep
+	removeAllFunc    = os.RemoveAll
 )
 
 func main() {
@@ -67,8 +71,22 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 
 	if cfg.SyncMode == "backfill" {
 		log.Printf("[BACKFILL] Resetting sync state at %s", cfg.StateLocation)
-		if err := os.RemoveAll(cfg.StateLocation); err != nil {
-			log.Printf("Failed to reset state: %v", err)
+		u, err := url.Parse(cfg.StateLocation)
+		if err != nil {
+			log.Printf("Invalid state location: %v", err)
+		} else if u.Scheme != "" && u.Scheme != "file" {
+			log.Printf("State location scheme %q is not supported for backfill", u.Scheme)
+		} else {
+			p := u.Path
+			if p == "" {
+				p = u.Opaque
+			}
+			p = filepath.Clean(p)
+			if p == "." || p == string(os.PathSeparator) {
+				log.Printf("State location path %q is unsafe; skipping reset", p)
+			} else if err := removeAllFunc(p); err != nil {
+				log.Printf("Failed to reset state: %v", err)
+			}
 		}
 	}
 
