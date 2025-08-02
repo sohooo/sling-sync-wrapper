@@ -53,10 +53,11 @@ The collected telemetry is stored in GreptimeDB and visualized via Grafana.
 
 ## QUICKSTART
 
-The quickstart synchronizes two sample SQLite mission databases into a single
-DuckDB command database. It generates realistic drone telemetry, writes simple
-Sling pipeline files and performs a sync just like the integration test
-`sqlite_duckdb_test.go`.
+The `make quickstart` target runs the standalone program in `cmd/quickstart`.
+It creates two sample SQLite mission databases, a DuckDB command database and
+performs a sync between them using direct SQL statements. This example is
+self-contained and **does not** invoke the Sling CLI or the wrapper binary. It
+is meant to generate sample data and pipeline files for exploration.
 
 Run everything with one command:
 
@@ -72,10 +73,13 @@ the wrapper at your own databases.
 
 ## Quickstart (Local)
 
+This flow exercises the wrapper itself. The wrapper invokes the Sling CLI to
+run pipeline files, so the CLI must be installed locally.
+
 ### Prerequisites
 
 - Go 1.22+
-- Sling CLI installed
+- Sling CLI installed and on your `PATH` (download from [Sling releases](https://github.com/slingdata/sling/releases) or `go install github.com/slingdata/sling-cli@latest`)
 - GreptimeDB and Grafana (optional for observability)
 
 ### Build
