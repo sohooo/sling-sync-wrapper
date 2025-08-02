@@ -88,12 +88,13 @@ go build -o sling-sync-wrapper ./cmd/wrapper
 
 ```bash
 MISSION_CLUSTER_ID=mission-01 \
-SYNC_JOB_ID=$(uuidgen) \
 SLING_CONFIG=./pipeline.yaml \
 SLING_STATE=file://./sling_state.json \
 OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317 \
 ./sling-sync-wrapper
 ```
+
+The wrapper automatically generates a unique `SYNC_JOB_ID` for each run.
 
 ### Modes
 
@@ -107,6 +108,24 @@ SYNC_MODE=noop ./sling-sync-wrapper
 # backfil
 SYNC_MODE=backfill ./sling-sync-wrapper
 ```
+
+## Environment Variables
+
+The wrapper is configured using the following environment variables:
+
+| Variable | Default | Required? | Description |
+|----------|---------|-----------|-------------|
+| `MISSION_CLUSTER_ID` | `unknown-cluster` | Yes | Source cluster identifier used in telemetry. |
+| `SLING_CONFIG` | – | Yes* | Path to a single pipeline file. Required if `PIPELINE_DIR` is not set. |
+| `PIPELINE_DIR` | `/etc/sling/pipelines` | Yes* | Directory containing one or more pipeline files. Required if `SLING_CONFIG` is not set. |
+| `SLING_STATE` | `file://./sling_state.json` | No | Path or URL where sync state is stored. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `otel-collector:4317` | No | OpenTelemetry Collector endpoint for traces and logs. |
+| `SYNC_MODE` | `normal` | No | Sync mode: `normal` (incremental), `noop`, or `backfill`. |
+| `SYNC_MAX_RETRIES` | `3` | No | Number of times to retry a failed pipeline run. |
+| `SYNC_BACKOFF_BASE` | `5s` | No | Base duration for exponential backoff between retries. |
+| `SLING_BIN` | `sling` | No | Path to the Sling CLI binary. |
+
+`*` Either `SLING_CONFIG` or `PIPELINE_DIR` must be set.
 
 ## Kubernetes Deployment
 
@@ -122,16 +141,7 @@ This will deploy:
 - Sling Sync Job (CronJob) running every 5 minutes.
 - Pipeline ConfigMap (sling-pipelines) for one or more pipeline YAMLs.
 
-### Environment Variables
-
-- `MISSION_CLUSTER_ID` (required) → source cluster identifier.
-- `PIPELINE_DIR` → directory with multiple pipelines (default /etc/sling/pipelines).
-- `SYNC_MODE` → "" (incremental), noop, backfill.
-- `SLING_STATE` → path or URL to sync state (default `file://./sling_state.json`).
-- `SYNC_MAX_RETRIES` → number of retries (default 3).
-- `SYNC_BACKOFF_BASE` → backoff base (default 5s).
-- `OTEL_EXPORTER_OTLP_ENDPOINT` → OTel Collector endpoint (default otel-collector:4317).
-- `SLING_BIN` → path to the Sling CLI binary (default `sling`).
+Configure the CronJob using the environment variables described in the [Environment Variables](#environment-variables) section.
 
 ## Grafana Dashboard
 
