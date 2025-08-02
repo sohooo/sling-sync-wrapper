@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -49,9 +50,11 @@ func Pipelines(cfg Config) ([]string, error) {
 		pipelines = append(pipelines, files...)
 	} else if cfg.PipelineFile != "" {
 		pipelines = append(pipelines, cfg.PipelineFile)
-	} else {
-		return nil, fmt.Errorf("no SLING_CONFIG or PIPELINE_DIR specified")
 	}
+	if len(pipelines) == 0 {
+		return nil, fmt.Errorf("no pipeline files found (set SLING_CONFIG or PIPELINE_DIR)")
+	}
+	sort.Strings(pipelines)
 	return pipelines, nil
 }
 
