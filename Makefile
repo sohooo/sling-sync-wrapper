@@ -23,25 +23,34 @@ run-local:
 	./bin/$(APP_NAME)
 
 
-quickstart:
+quickstart: install-sling-cli install-duckdb-cli
 	go run ./cmd/quickstart
+	duckdb quickstart/command.db "select distinct synced_from from telemetry;"
 
 install-sling-cli:
-	if [ "$(SLING_CLI_VERSION)" = "latest" ]; then \
-	URL="https://github.com/slingdata-io/sling-cli/releases/latest/download/sling_linux_amd64.tar.gz"; \
+	@if ! command -v sling >/dev/null 2>&1; then \
+	        if [ "$(SLING_CLI_VERSION)" = "latest" ]; then \
+	                URL="https://github.com/slingdata-io/sling-cli/releases/latest/download/sling_linux_amd64.tar.gz"; \
+	        else \
+	                URL="https://github.com/slingdata-io/sling-cli/releases/download/$(SLING_CLI_VERSION)/sling_linux_amd64.tar.gz"; \
+	        fi; \
+	        curl -L $$URL -o /tmp/sling_cli.tar.gz; \
+	        tar -C /usr/local/bin -xzf /tmp/sling_cli.tar.gz sling; \
+	        chmod +x /usr/local/bin/sling; \
+	        rm /tmp/sling_cli.tar.gz; \
 	else \
-	URL="https://github.com/slingdata-io/sling-cli/releases/download/$(SLING_CLI_VERSION)/sling_linux_amd64.tar.gz"; \
-	fi; \
-	curl -L $$URL -o /tmp/sling_cli.tar.gz; \
-	tar -C /usr/local/bin -xzf /tmp/sling_cli.tar.gz sling; \
-	chmod +x /usr/local/bin/sling; \
-	rm /tmp/sling_cli.tar.gz
+	        echo "sling already installed"; \
+	fi
 
 install-duckdb-cli:
-	curl -L https://github.com/duckdb/duckdb/releases/download/v$(DUCKDB_CLI_VERSION)/duckdb_cli-linux-amd64.zip -o /tmp/duckdb_cli.zip
-	unzip -o /tmp/duckdb_cli.zip -d /usr/local/bin
-	chmod +x /usr/local/bin/duckdb
-	rm /tmp/duckdb_cli.zip
+	@if ! command -v duckdb >/dev/null 2>&1; then \
+	        curl -L https://github.com/duckdb/duckdb/releases/download/v$(DUCKDB_CLI_VERSION)/duckdb_cli-linux-amd64.zip -o /tmp/duckdb_cli.zip; \
+	        unzip -o /tmp/duckdb_cli.zip -d /usr/local/bin; \
+	        chmod +x /usr/local/bin/duckdb; \
+	        rm /tmp/duckdb_cli.zip; \
+	else \
+	        echo "duckdb already installed"; \
+	fi
 
 fmt:
 	go fmt ./...

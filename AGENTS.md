@@ -26,6 +26,10 @@ These guidelines apply to the entire repository.
   ```bash
   make build
   ```
+- Run the quickstart example to verify everything works end-to-end:
+  ```bash
+  make quickstart
+  ```
 - Additional useful commands from the Makefile:
   - `make fmt` – format Go code.
   - `make vet` – run static analysis.
@@ -35,11 +39,7 @@ These guidelines apply to the entire repository.
   - `make run-local` – run the wrapper locally using default env vars.
   - `make install-sling-cli` – install the Sling CLI.
   - `make install-duckdb-cli` – install the DuckDB CLI used to inspect quickstart results.
-  - `make quickstart` – run the quickstart example and verify the output:
-    ```bash
-    duckdb quickstart/command.db "select distinct synced_from from telemetry;"
-    ```
-    The result should list `mission1` and `mission2`.
+  - `make quickstart` – install dependencies, run the quickstart, and print distinct `synced_from` missions (`mission1` and `mission2`).
 
 Ensure tests pass before opening a pull request.
 
