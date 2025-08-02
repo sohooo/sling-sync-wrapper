@@ -33,7 +33,13 @@ These guidelines apply to the entire repository.
   - `make docker` – build the container image.
   - `make push` – push the image to the registry.
   - `make run-local` – run the wrapper locally using default env vars.
-  - `make quickstart` – run the quickstart example.
+  - `make install-sling-cli` – install the Sling CLI.
+  - `make install-duckdb-cli` – install the DuckDB CLI used to inspect quickstart results.
+  - `make quickstart` – run the quickstart example and verify the output:
+    ```bash
+    duckdb quickstart/command.db "select distinct synced_from from telemetry;"
+    ```
+    The result should list `mission1` and `mission2`.
 
 Ensure tests pass before opening a pull request.
 
