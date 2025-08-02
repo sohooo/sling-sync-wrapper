@@ -22,6 +22,8 @@ type SlingLogLine struct {
 	Error   string `json:"error,omitempty"`
 }
 
+const maxScanTokenSize = 1024 * 1024 // 1 MiB
+
 func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
 	cmd := execCommandContext(ctx, slingBin, "sync", "--config", pipeline, "--log-format", "json")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("SLING_STATE=%s", stateLocation))
@@ -37,6 +39,8 @@ func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID 
 	}
 
 	scanner := bufio.NewScanner(stdout)
+	buf := make([]byte, 0, maxScanTokenSize)
+	scanner.Buffer(buf, maxScanTokenSize)
 	rowsSynced := 0
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -53,6 +57,11 @@ func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID 
 		} else {
 			span.AddEvent(line)
 		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		cmd.Wait() // ensure process resources are released
+		return rowsSynced, err
 	}
 
 	if err := cmd.Wait(); err != nil {

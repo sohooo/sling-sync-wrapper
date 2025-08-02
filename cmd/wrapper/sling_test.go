@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -59,5 +61,40 @@ func TestRunSlingOnceEvents(t *testing.T) {
 	}
 	if len(ended[0].Events()) < 3 {
 		t.Errorf("expected at least 3 events, got %d", len(ended[0].Events()))
+	}
+}
+
+func TestRunSlingOnceLongLogLine(t *testing.T) {
+	dir := t.TempDir()
+	longMsg := strings.Repeat("a", 70*1024)
+	script := filepath.Join(dir, "sling")
+	content := fmt.Sprintf("#!/bin/sh\necho '{\"level\":\"info\",\"message\":\"%s\"}'\n", longMsg)
+	if err := os.WriteFile(script, []byte(content), 0755); err != nil {
+		t.Fatalf("script: %v", err)
+	}
+	execCommandContext = fakeExecCommandContext(script)
+	defer func() { execCommandContext = exec.CommandContext }()
+
+	sr := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
+	tracer := tp.Tracer("test")
+
+	ctx := context.Background()
+	ctx, span := tracer.Start(ctx, "run")
+	if _, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span); err != nil {
+		t.Fatalf("runSlingOnce error: %v", err)
+	}
+	span.End()
+
+	ended := sr.Ended()
+	if len(ended) != 1 {
+		t.Fatalf("expected one span, got %d", len(ended))
+	}
+	events := ended[0].Events()
+	if len(events) != 1 {
+		t.Fatalf("expected one event, got %d", len(events))
+	}
+	if got := events[0].Name; len(got) != len(longMsg) {
+		t.Fatalf("event truncated: expected len %d, got %d", len(longMsg), len(got))
 	}
 }
