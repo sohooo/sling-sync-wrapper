@@ -169,6 +169,17 @@ A pre-built Grafana dashboard is provided:
   - `YOUR_TRACE_DATASOURCE_UID` → GreptimeDB traces.
   - `YOUR_LOGS_DATASOURCE_UID` → GreptimeDB logs.
 
+## Developer Quickstart
+
+Run the core checks and build the Docker image with:
+
+```bash
+make fmt    # format Go code
+make vet    # run static analysis
+make test   # run unit tests
+make docker # build the Docker image
+```
+
 ## Development
 
 ### Maintenance
