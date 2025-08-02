@@ -1,6 +1,7 @@
 APP_NAME = sling-sync-wrapper
 REGISTRY = registry.local
 SLING_CLI_VERSION ?= latest
+DUCKDB_CLI_VERSION ?= 0.10.1
 
 all: build
 
@@ -27,6 +28,12 @@ quickstart:
 
 install-sling-cli:
 	go install github.com/slingdata/sling-cli@$(SLING_CLI_VERSION)
+
+install-duckdb-cli:
+	curl -L https://github.com/duckdb/duckdb/releases/download/v$(DUCKDB_CLI_VERSION)/duckdb_cli-linux-amd64.zip -o /tmp/duckdb_cli.zip
+	unzip -o /tmp/duckdb_cli.zip -d /usr/local/bin
+	chmod +x /usr/local/bin/duckdb
+	rm /tmp/duckdb_cli.zip
 
 fmt:
 	go fmt ./...
