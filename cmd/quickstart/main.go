@@ -1,3 +1,7 @@
+// Program quickstart creates sample mission and command databases and syncs
+// them using direct SQL statements. It runs entirely standalone and does not
+// invoke the Sling CLI or the sling-sync-wrapper. For an example using the
+// wrapper, build and run the code in `cmd/wrapper` instead.
 package main
 
 import (
