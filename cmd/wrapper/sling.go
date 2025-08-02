@@ -26,7 +26,11 @@ const maxScanTokenSize = 1024 * 1024 // 1 MiB
 
 func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
 	cmd := execCommandContext(ctx, slingBin, "sync", "--config", pipeline, "--log-format", "json")
-	cmd.Env = append(os.Environ(), fmt.Sprintf("SLING_STATE=%s", stateLocation))
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("SLING_STATE=%s", stateLocation),
+		fmt.Sprintf("SYNC_JOB_ID=%s", jobID),
+		fmt.Sprintf("SLING_CONFIG=%s", pipeline),
+	)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
