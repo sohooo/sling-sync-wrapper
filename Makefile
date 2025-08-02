@@ -27,7 +27,15 @@ quickstart:
 	go run ./cmd/quickstart
 
 install-sling-cli:
-	go install github.com/slingdata/sling-cli@$(SLING_CLI_VERSION)
+	if [ "$(SLING_CLI_VERSION)" = "latest" ]; then \
+	URL="https://github.com/slingdata-io/sling-cli/releases/latest/download/sling_linux_amd64.tar.gz"; \
+	else \
+	URL="https://github.com/slingdata-io/sling-cli/releases/download/$(SLING_CLI_VERSION)/sling_linux_amd64.tar.gz"; \
+	fi; \
+	curl -L $$URL -o /tmp/sling_cli.tar.gz; \
+	tar -C /usr/local/bin -xzf /tmp/sling_cli.tar.gz sling; \
+	chmod +x /usr/local/bin/sling; \
+	rm /tmp/sling_cli.tar.gz
 
 install-duckdb-cli:
 	curl -L https://github.com/duckdb/duckdb/releases/download/v$(DUCKDB_CLI_VERSION)/duckdb_cli-linux-amd64.zip -o /tmp/duckdb_cli.zip
