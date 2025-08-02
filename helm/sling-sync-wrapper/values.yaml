@@ -17,4 +17,5 @@ otelExporterEndpoint: "otel-collector:4317"
 syncMode: "normal"
 syncMaxRetries: 3
 syncBackoffBase: "5s"
+slingTimeout: "30m"
 schedule: "*/5 * * * *"

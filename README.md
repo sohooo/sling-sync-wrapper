@@ -17,7 +17,7 @@ The collected telemetry is stored in GreptimeDB and visualized via Grafana.
 
     - sync_job_id, rows_synced, duration_seconds, and status.
     - Logs captured as span events.
-    - Retry Logic; Retries failed syncs using exponential backoff (SYNC_MAX_RETRIES, SYNC_BACKOFF_BASE).
+    - Retry Logic; Retries failed syncs using exponential backoff (SYNC_MAX_RETRIES, SYNC_BACKOFF_BASE). Configurable Sling CLI timeout (SLING_TIMEOUT).
 
 **Multi-Pipeline Support**
 
@@ -94,6 +94,7 @@ go build -o sling-sync-wrapper ./cmd/wrapper
 MISSION_CLUSTER_ID=mission-01 \
 SLING_CONFIG=./pipeline.yaml \
 SLING_STATE=file://./sling_state.json \
+SLING_TIMEOUT=30m \
 OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317 \
 ./sling-sync-wrapper
 ```
@@ -128,6 +129,7 @@ The wrapper is configured using the following environment variables:
 | `SYNC_MAX_RETRIES` | `3` | No | Number of times to retry a failed pipeline run. |
 | `SYNC_BACKOFF_BASE` | `5s` | No | Base duration for exponential backoff between retries. |
 | `SLING_BIN` | `sling` | No | Path to the Sling CLI binary. |
+| `SLING_TIMEOUT` | `30m` | No | Maximum duration for a single Sling CLI invocation. |
 
 `*` Either `SLING_CONFIG` or `PIPELINE_DIR` must be set.
 

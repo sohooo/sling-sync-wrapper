@@ -17,10 +17,11 @@ push: docker
 run-local:
 	MISSION_CLUSTER_ID=local \
 	SYNC_JOB_ID=$$(uuidgen) \
-	SLING_CONFIG=./pipeline.yaml \
-	SLING_STATE=file://./sling_state.json \
-	OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317 \
-	./bin/$(APP_NAME)
+        SLING_CONFIG=./pipeline.yaml \
+        SLING_STATE=file://./sling_state.json \
+       SLING_TIMEOUT=30m \
+        OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317 \
+        ./bin/$(APP_NAME)
 
 
 quickstart: install-sling-cli install-duckdb-cli
