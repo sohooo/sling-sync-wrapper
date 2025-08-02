@@ -79,7 +79,7 @@ run pipeline files, so the CLI must be installed locally.
 ### Prerequisites
 
 - Go 1.22+
-- Sling CLI installed and on your `PATH` (download from [Sling releases](https://github.com/slingdata/sling/releases) or `go install github.com/slingdata/sling-cli@latest`)
+- Sling CLI installed and on your `PATH` (run `make install-sling-cli` or download from [Sling releases](https://github.com/slingdata/sling/releases))
 - GreptimeDB and Grafana (optional for observability)
 
 ### Build
