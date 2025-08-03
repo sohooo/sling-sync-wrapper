@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 
 	_ "github.com/marcboeker/go-duckdb"
 	_ "github.com/mattn/go-sqlite3"
@@ -53,7 +54,8 @@ func EnsureCommandTable(path string, includeSyncedFrom bool) error {
 	}
 	defer db.Close()
 
-	query := `create table if not exists telemetry (
+	var b strings.Builder
+	b.WriteString(`create table if not exists telemetry (
         cluster_id text,
         drone_id text,
         lat real,
@@ -61,15 +63,15 @@ func EnsureCommandTable(path string, includeSyncedFrom bool) error {
         alt real,
         battery real,
         status text,
-        ts text`
+        ts text`)
 	if includeSyncedFrom {
-		query += `,
-        synced_from text`
+		b.WriteString(`,
+        synced_from text`)
 	}
-	query += `
-    )`
+	b.WriteString(`
+    )`)
 
-	_, err = db.Exec(query)
+	_, err = db.Exec(b.String())
 	return err
 }
 
@@ -94,6 +96,19 @@ func Sync(srcPath, dstPath, mission string, includeSyncedFrom bool) (int, error)
 	}
 	defer rows.Close()
 
+	var b strings.Builder
+	b.WriteString(`insert into telemetry values (?,?,?,?,?,?,?,?`)
+	if includeSyncedFrom {
+		b.WriteString(",?")
+	}
+	b.WriteString(")")
+
+	stmt, err := dst.Prepare(b.String())
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+
 	count := 0
 	for rows.Next() {
 		var cID, dID, status, ts string
@@ -102,13 +117,10 @@ func Sync(srcPath, dstPath, mission string, includeSyncedFrom bool) (int, error)
 			return count, err
 		}
 		args := []any{cID, dID, lat, lon, alt, battery, status, ts}
-		query := `insert into telemetry values (?,?,?,?,?,?,?,?`
 		if includeSyncedFrom {
-			query += ",?"
 			args = append(args, mission)
 		}
-		query += ")"
-		if _, err := dst.Exec(query, args...); err != nil {
+		if _, err := stmt.Exec(args...); err != nil {
 			return count, err
 		}
 		count++
