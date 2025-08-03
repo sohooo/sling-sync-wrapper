@@ -91,27 +91,31 @@ go build -o sling-sync-wrapper ./cmd/wrapper
 ### Run Example
 
 ```bash
-MISSION_CLUSTER_ID=mission-01 \
-SLING_CONFIG=./pipeline.yaml \
-SLING_STATE=file://./sling_state.json \
-SLING_TIMEOUT=30m \
-OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317 \
-./sling-sync-wrapper
+./sling-sync-wrapper run \
+  --mission-cluster-id mission-01 \
+  --config ./pipeline.yaml \
+  --state file://./sling_state.json \
+  --sling-timeout 30m \
+  --otel-endpoint localhost:4317
 ```
 
+Flags override environment variables, which remain available for compatibility.
 The wrapper automatically generates a unique `SYNC_JOB_ID` for each run.
 
-### Modes
+### Subcommands
 
-- noop: dry-run (no sync)
-- backfill: reset state and re-sync all data
+The wrapper exposes the following subcommands:
+
+- `run`: execute configured pipelines (default mode)
+- `noop`: dry-run without invoking Sling
+- `backfill`: reset state and exit
 
 ```bash
 # noop
-SYNC_MODE=noop ./sling-sync-wrapper
+./sling-sync-wrapper noop --config ./pipeline.yaml
 
-# backfil
-SYNC_MODE=backfill ./sling-sync-wrapper
+# backfill
+./sling-sync-wrapper backfill --config ./pipeline.yaml
 ```
 
 ## Environment Variables
