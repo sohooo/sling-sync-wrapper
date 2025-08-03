@@ -46,7 +46,7 @@ func TestRunSlingOnceEvents(t *testing.T) {
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
 	tracer := tp.Tracer("test")
 
-	ctx := context.Background()
+	ctx := testContext()
 	ctx, span := tracer.Start(ctx, "run")
 	rows, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span)
 	span.End()
@@ -81,7 +81,7 @@ func TestRunSlingOnceLongLogLine(t *testing.T) {
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
 	tracer := tp.Tracer("test")
 
-	ctx := context.Background()
+	ctx := testContext()
 	ctx, span := tracer.Start(ctx, "run")
 	if _, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span); err != nil {
 		t.Fatalf("runSlingOnce error: %v", err)
@@ -119,7 +119,7 @@ func TestRunSlingOnceEnvironmentVariables(t *testing.T) {
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
 	tracer := tp.Tracer("test")
 
-	ctx := context.Background()
+	ctx := testContext()
 	ctx, span := tracer.Start(ctx, "run")
 	if _, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span); err != nil {
 		t.Fatalf("runSlingOnce error: %v", err)
@@ -164,7 +164,7 @@ func TestRunSlingOnceInvalidJSON(t *testing.T) {
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
 	tracer := tp.Tracer("test")
 
-	ctx := context.Background()
+	ctx := testContext()
 	ctx, span := tracer.Start(ctx, "run")
 	if _, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span); err != nil {
 		t.Fatalf("runSlingOnce error: %v", err)
@@ -202,7 +202,7 @@ func TestRunSlingOnceTimeout(t *testing.T) {
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
 	tracer := tp.Tracer("test")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	ctx, cancel := context.WithTimeout(testContext(), 10*time.Millisecond)
 	defer cancel()
 	ctx, span := tracer.Start(ctx, "run")
 	_, err := runSlingOnce(ctx, script, "pipe.yaml", "state", "job", span)

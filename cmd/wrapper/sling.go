@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+
+	"sling-sync-wrapper/internal/logging"
 )
 
 var execCommandContext = exec.CommandContext
@@ -95,10 +96,11 @@ func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID 
 	buf := make([]byte, 0, maxScanTokenSize)
 	scanner.Buffer(buf, maxScanTokenSize)
 	rowsSynced := 0
+	logger := logging.FromContext(ctx)
 	for scanner.Scan() {
 		rows, err := processLogLine(scanner.Text(), span)
 		if err != nil {
-			log.Printf("failed to parse Sling log line: %v", err)
+			logger.Error("failed to parse Sling log line", "err", err)
 			continue
 		}
 		if rows > 0 {

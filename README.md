@@ -6,6 +6,7 @@ This project wraps the Sling CLI to:
 
 - Run data sync jobs from mission clusters to a central command cluster.
 - Emit OpenTelemetry traces and logs for rich observability.
+- Output structured JSON logs for context-aware debugging.
 - Support multiple pipelines, retry logic, backfill mode, and noop (dry-run) mode.
 - Integrate easily into Kubernetes as a CronJob.
 

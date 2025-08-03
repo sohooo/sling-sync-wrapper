@@ -19,7 +19,7 @@ func TestResetStateRemovesFile(t *testing.T) {
 	tempDir := t.TempDir()
 	stateFile := filepath.Join(tempDir, "state.json")
 	cfg := config.Config{StateLocation: "file://" + stateFile}
-	if err := resetState(cfg); err != nil {
+	if err := resetState(testContext(), cfg); err != nil {
 		t.Fatalf("resetState returned error: %v", err)
 	}
 	if removed != stateFile {
@@ -36,7 +36,7 @@ func TestResetStateSkipsNonFileScheme(t *testing.T) {
 	defer func() { removeAllFunc = os.RemoveAll }()
 
 	cfg := config.Config{StateLocation: "s3://bucket/state.json"}
-	if err := resetState(cfg); err != nil {
+	if err := resetState(testContext(), cfg); err != nil {
 		t.Fatalf("resetState returned error: %v", err)
 	}
 	if called {

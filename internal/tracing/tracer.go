@@ -2,7 +2,7 @@ package tracing
 
 import (
 	"context"
-	"log"
+	"os"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -11,6 +11,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
+
+	"sling-sync-wrapper/internal/logging"
 )
 
 // Init sets up an OTEL tracer and returns it along with a shutdown function.
@@ -19,7 +21,8 @@ func Init(ctx context.Context, serviceName, missionClusterID, endpoint string) (
 		otlptracegrpc.WithInsecure(),
 		otlptracegrpc.WithEndpoint(endpoint))
 	if err != nil {
-		log.Fatalf("failed to create OTLP trace exporter: %v", err)
+		logging.FromContext(ctx).Error("failed to create OTLP trace exporter", "err", err)
+		os.Exit(1)
 	}
 
 	tp := sdktrace.NewTracerProvider(

@@ -45,7 +45,7 @@ func TestSQLiteToDuckDBSync(t *testing.T) {
 	}
 	defer func() { runSlingOnceFunc = runSlingOnce }()
 
-	if err := runPipeline(context.Background(), tracer, cfg, pipelinePath, "job1"); err != nil {
+	if err := runPipeline(testContext(), tracer, cfg, pipelinePath, "job1"); err != nil {
 		t.Fatalf("runPipeline returned error: %v", err)
 	}
 
@@ -105,12 +105,12 @@ func TestSQLiteTwoMissionDBsToDuckDB(t *testing.T) {
 
 	srcPath = mission1Path
 	currentMission = "mission1"
-	if err := runPipeline(context.Background(), tracer, cfg, pipeline1, "job1"); err != nil {
+	if err := runPipeline(testContext(), tracer, cfg, pipeline1, "job1"); err != nil {
 		t.Fatalf("runPipeline returned error: %v", err)
 	}
 	srcPath = mission2Path
 	currentMission = "mission2"
-	if err := runPipeline(context.Background(), tracer, cfg, pipeline2, "job2"); err != nil {
+	if err := runPipeline(testContext(), tracer, cfg, pipeline2, "job2"); err != nil {
 		t.Fatalf("runPipeline returned error: %v", err)
 	}
 

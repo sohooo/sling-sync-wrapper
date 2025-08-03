@@ -1,24 +1,26 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
 
 	"sling-sync-wrapper/internal/config"
+	"sling-sync-wrapper/internal/logging"
 )
 
-func resetState(cfg config.Config) error {
-	log.Printf("[BACKFILL] Resetting sync state at %s", cfg.StateLocation)
+func resetState(ctx context.Context, cfg config.Config) error {
+	logger := logging.FromContext(ctx)
+	logger.Info("resetting sync state", "mode", "backfill", "state_location", cfg.StateLocation)
 	u, err := url.Parse(cfg.StateLocation)
 	if err != nil {
-		log.Printf("Invalid state location: %v", err)
+		logger.Error("invalid state location", "err", err)
 		return fmt.Errorf("parse state location: %w", err)
 	}
 	if u.Scheme != "" && u.Scheme != "file" {
-		log.Printf("State location scheme %q is not supported for backfill", u.Scheme)
+		logger.Error("state location scheme not supported for backfill", "scheme", u.Scheme)
 		return nil
 	}
 	p := u.Path
@@ -27,11 +29,11 @@ func resetState(cfg config.Config) error {
 	}
 	p = filepath.Clean(p)
 	if p == "." || p == string(os.PathSeparator) {
-		log.Printf("State location path %q is unsafe; skipping reset", p)
+		logger.Error("state location path is unsafe; skipping reset", "path", p)
 		return nil
 	}
 	if err := removeAllFunc(p); err != nil {
-		log.Printf("Failed to reset state: %v", err)
+		logger.Error("failed to reset state", "err", err)
 		return fmt.Errorf("remove state path %s: %w", p, err)
 	}
 	return nil

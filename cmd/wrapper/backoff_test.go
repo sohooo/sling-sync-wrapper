@@ -31,7 +31,7 @@ func TestRunPipelineExponentialBackoff(t *testing.T) {
 	tracer := trace.NewNoopTracerProvider().Tracer("test")
 	cfg := config.Config{MissionClusterID: "mc", StateLocation: "state", SyncMode: "normal", MaxRetries: 4, BackoffBase: time.Millisecond}
 
-	if err := runPipeline(context.Background(), tracer, cfg, "pipe.yaml", "job1"); err != nil {
+	if err := runPipeline(testContext(), tracer, cfg, "pipe.yaml", "job1"); err != nil {
 		t.Fatalf("runPipeline returned error: %v", err)
 	}
 

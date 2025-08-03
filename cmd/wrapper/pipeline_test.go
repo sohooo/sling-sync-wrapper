@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
-	"os"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
 	"sling-sync-wrapper/internal/config"
+	"sling-sync-wrapper/internal/logging"
 )
 
 func TestRunPipelineNoop(t *testing.T) {
@@ -28,11 +28,11 @@ func TestRunPipelineNoop(t *testing.T) {
 	tracer := tp.Tracer("test")
 
 	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	defer log.SetOutput(os.Stderr)
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	ctx := logging.NewContext(context.Background(), logger)
 
 	cfg := config.Config{MissionClusterID: "mc", StateLocation: "state", SyncMode: "noop", MaxRetries: 1, BackoffBase: time.Millisecond}
-	if err := runPipeline(context.Background(), tracer, cfg, "pipe.yaml", "job1"); err != nil {
+	if err := runPipeline(ctx, tracer, cfg, "pipe.yaml", "job1"); err != nil {
 		t.Fatalf("runPipeline returned error: %v", err)
 	}
 
@@ -52,7 +52,7 @@ func TestRunPipelineNoop(t *testing.T) {
 	if !found {
 		t.Errorf("noop status attribute missing")
 	}
-	if !bytes.Contains(buf.Bytes(), []byte("[NOOP]")) {
+	if !bytes.Contains(buf.Bytes(), []byte("\"mode\":\"noop\"")) {
 		t.Errorf("noop log not produced")
 	}
 }
@@ -70,7 +70,7 @@ func TestRunPipelineBackfill(t *testing.T) {
 	tracer := tp.Tracer("test")
 
 	cfg := config.Config{MissionClusterID: "mc", StateLocation: "state", SyncMode: "backfill", MaxRetries: 1, BackoffBase: time.Millisecond}
-	if err := runPipeline(context.Background(), tracer, cfg, "pipe.yaml", "job1"); err != nil {
+	if err := runPipeline(testContext(), tracer, cfg, "pipe.yaml", "job1"); err != nil {
 		t.Fatalf("runPipeline returned error: %v", err)
 	}
 
@@ -101,7 +101,7 @@ func TestRunPipelineReturnsError(t *testing.T) {
 
 	tracer := trace.NewNoopTracerProvider().Tracer("test")
 	cfg := config.Config{MissionClusterID: "mc", StateLocation: "state", SyncMode: "normal", MaxRetries: 2, BackoffBase: time.Millisecond}
-	if err := runPipeline(context.Background(), tracer, cfg, "pipe.yaml", "job1"); err == nil {
+	if err := runPipeline(testContext(), tracer, cfg, "pipe.yaml", "job1"); err == nil {
 		t.Fatalf("expected error from runPipeline")
 	}
 }
