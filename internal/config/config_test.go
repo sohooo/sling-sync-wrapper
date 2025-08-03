@@ -138,3 +138,49 @@ func TestGetEnvInt(t *testing.T) {
 		t.Fatalf("expected fallback 42 on invalid int, got %d", got)
 	}
 }
+
+func TestGetEnv(t *testing.T) {
+	const key = "TEST_ENV_STRING"
+
+	os.Unsetenv(key)
+	if got := getEnv(key, "fallback"); got != "fallback" {
+		t.Fatalf("expected fallback value, got %q", got)
+	}
+
+	t.Setenv(key, "value")
+	if got := getEnv(key, "fallback"); got != "value" {
+		t.Fatalf("expected value, got %q", got)
+	}
+}
+
+func TestGetEnvDuration(t *testing.T) {
+	const key = "TEST_ENV_DURATION"
+
+	os.Unsetenv(key)
+	if got := getEnvDuration(key, time.Second); got != time.Second {
+		t.Fatalf("expected fallback 1s, got %s", got)
+	}
+
+	t.Setenv(key, "2s")
+	if got := getEnvDuration(key, time.Second); got != 2*time.Second {
+		t.Fatalf("expected 2s, got %s", got)
+	}
+
+	t.Setenv(key, "notaduration")
+	if got := getEnvDuration(key, time.Second); got != time.Second {
+		t.Fatalf("expected fallback 1s on invalid duration, got %s", got)
+	}
+}
+
+func TestFromEnvInvalidDuration(t *testing.T) {
+	t.Setenv("SYNC_BACKOFF_BASE", "invalid")
+	t.Setenv("SLING_TIMEOUT", "bad")
+
+	cfg := FromEnv()
+	if cfg.BackoffBase != 5*time.Second {
+		t.Errorf("expected default backoff base, got %s", cfg.BackoffBase)
+	}
+	if cfg.SlingTimeout != 30*time.Minute {
+		t.Errorf("expected default sling timeout, got %s", cfg.SlingTimeout)
+	}
+}
