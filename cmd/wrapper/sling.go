@@ -39,7 +39,7 @@ func processLogLine(line string, span trace.Span) (int, error) {
 		span.RecordError(err)
 		span.AddEvent("invalid JSON log line",
 			trace.WithAttributes(attribute.String("line", line)))
-		return 0, err
+		return 0, fmt.Errorf("decode log line: %w", err)
 	}
 
 	span.AddEvent(logEntry.Message,
@@ -56,15 +56,18 @@ func processLogLine(line string, span trace.Span) (int, error) {
 func checkSlingErrors(ctx context.Context, cmd *exec.Cmd, scanErr error) error {
 	if scanErr != nil {
 		cmd.Wait() // ensure process resources are released
-		return scanErr
+		return fmt.Errorf("scan sling output: %w", scanErr)
 	}
 	if err := cmd.Wait(); err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
-			return ctxErr
+			return fmt.Errorf("command context: %w", ctxErr)
 		}
-		return err
+		return fmt.Errorf("wait for sling: %w", err)
 	}
-	return ctx.Err()
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return fmt.Errorf("command context: %w", ctxErr)
+	}
+	return nil
 }
 
 func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
@@ -80,12 +83,12 @@ func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID 
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("stdout pipe: %w", err)
 	}
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("start sling: %w", err)
 	}
 
 	scanner := bufio.NewScanner(stdout)
@@ -104,7 +107,7 @@ func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID 
 	}
 
 	if err := checkSlingErrors(ctx, cmd, scanner.Err()); err != nil {
-		return rowsSynced, err
+		return rowsSynced, fmt.Errorf("execute sling: %w", err)
 	}
 
 	return rowsSynced, nil

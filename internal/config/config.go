@@ -49,7 +49,7 @@ func Pipelines(cfg Config) ([]string, error) {
 	case cfg.PipelineDir != "":
 		files, err := filepath.Glob(filepath.Join(cfg.PipelineDir, "*.yaml"))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("find pipeline files: %w", err)
 		}
 		sort.Strings(files)
 		if len(files) > 0 {
