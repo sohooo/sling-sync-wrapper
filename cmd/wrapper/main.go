@@ -6,9 +6,6 @@ import (
 	"os"
 	"time"
 
-	"net/url"
-	"path/filepath"
-
 	"github.com/google/uuid"
 
 	"sling-sync-wrapper/internal/config"
@@ -61,38 +58,26 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 		attribute.String("sync_mode", cfg.SyncMode),
 	)
 
+	switch cfg.SyncMode {
+	case "noop":
+		log.Printf("[NOOP] Would run Sling pipeline %s", pipeline)
+		span.SetAttributes(attribute.String("status", "noop"))
+		return nil
+	case "backfill":
+		if err := resetState(cfg); err != nil {
+			span.RecordError(err)
+			span.SetAttributes(attribute.String("status", "failed"))
+			return err
+		}
+		span.SetAttributes(attribute.String("status", "backfill"))
+		return nil
+	}
+
 	startTime := time.Now()
 
 	prevTimeout := slingCLITimeout
 	slingCLITimeout = cfg.SlingTimeout
 	defer func() { slingCLITimeout = prevTimeout }()
-
-	if cfg.SyncMode == "noop" {
-		log.Printf("[NOOP] Would run Sling pipeline %s", pipeline)
-		span.SetAttributes(attribute.String("status", "noop"))
-		return nil
-	}
-
-	if cfg.SyncMode == "backfill" {
-		log.Printf("[BACKFILL] Resetting sync state at %s", cfg.StateLocation)
-		u, err := url.Parse(cfg.StateLocation)
-		if err != nil {
-			log.Printf("Invalid state location: %v", err)
-		} else if u.Scheme != "" && u.Scheme != "file" {
-			log.Printf("State location scheme %q is not supported for backfill", u.Scheme)
-		} else {
-			p := u.Path
-			if p == "" {
-				p = u.Opaque
-			}
-			p = filepath.Clean(p)
-			if p == "." || p == string(os.PathSeparator) {
-				log.Printf("State location path %q is unsafe; skipping reset", p)
-			} else if err := removeAllFunc(p); err != nil {
-				log.Printf("Failed to reset state: %v", err)
-			}
-		}
-	}
 
 	var lastErr error
 	var rowsSynced int
