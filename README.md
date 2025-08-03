@@ -1,5 +1,7 @@
 # Sling Sync Wrapper (with OpenTelemetry)
 
+> Orchestrate mission-cluster to command-cluster data flows with OpenTelemetry-powered visibility, multi-pipeline flexibility, and resilient modes for retries, backfills, and dry runs—ready to drop into your Kubernetes CronJobs.
+
 ## Overview
 
 This project wraps the Sling CLI to:
