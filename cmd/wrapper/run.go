@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
 	"github.com/google/uuid"
 
 	"sling-sync-wrapper/internal/config"
+	"sling-sync-wrapper/internal/logging"
 	"sling-sync-wrapper/internal/tracing"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -46,6 +46,8 @@ func run(ctx context.Context, cfg config.Config) error {
 }
 
 func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pipeline, jobID string) error {
+	logger := logging.FromContext(ctx).With("pipeline", pipeline, "sync_job_id", jobID)
+	ctx = logging.NewContext(ctx, logger)
 	ctx, span := tracer.Start(ctx, "sling.sync.run")
 	defer span.End()
 
@@ -59,11 +61,12 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 
 	switch cfg.SyncMode {
 	case "noop":
-		log.Printf("[NOOP] Would run Sling pipeline %s", pipeline)
+		logger.Info("would run Sling pipeline", "mode", "noop")
 		span.SetAttributes(attribute.String("status", "noop"))
 		return nil
 	case "backfill":
-		if err := resetState(cfg); err != nil {
+		if err := resetState(ctx, cfg); err != nil {
+			logger.Error("reset state failed", "err", err)
 			span.RecordError(err)
 			span.SetAttributes(attribute.String("status", "failed"))
 			return fmt.Errorf("reset state: %w", err)
@@ -89,7 +92,7 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 		}
 		lastErr = err
 		wait := cfg.BackoffBase * time.Duration(1<<uint(attempt-1))
-		log.Printf("Attempt %d failed: %v, retrying in %s", attempt, err, wait)
+		logger.Error("attempt failed, retrying", "attempt", attempt, "err", err, "wait", wait)
 		sleepFunc(wait)
 	}
 
@@ -105,7 +108,8 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 		span.SetAttributes(attribute.String("status", "success"))
 	}
 
-	log.Printf("Pipeline %s completed in %.2fs (rows: %d, status: %s)", pipeline, duration.Seconds(), rowsSynced, statusFromErr(lastErr))
+	status := statusFromErr(lastErr)
+	logger.Info("pipeline completed", "duration_seconds", duration.Seconds(), "rows_synced", rowsSynced, "status", status)
 	if lastErr != nil {
 		return fmt.Errorf("sling run failed: %w", lastErr)
 	}

@@ -2,15 +2,19 @@ package main
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/spf13/cobra"
 
 	"sling-sync-wrapper/internal/config"
+	"sling-sync-wrapper/internal/logging"
 )
 
 // newRootCmd constructs the root command for the wrapper CLI.
 func newRootCmd() *cobra.Command {
 	cfg := config.FromEnv()
+	logger := logging.New()
+	slog.SetDefault(logger)
 
 	cmd := &cobra.Command{
 		Use:   "sling-sync-wrapper",
@@ -31,40 +35,43 @@ supplied via flags or environment variables.`,
 	cmd.PersistentFlags().StringVar(&cfg.SlingBinary, "sling-binary", cfg.SlingBinary, "Path to the Sling CLI binary (env: SLING_BIN)")
 	cmd.PersistentFlags().DurationVar(&cfg.SlingTimeout, "sling-timeout", cfg.SlingTimeout, "Maximum duration for a single Sling run (env: SLING_TIMEOUT)")
 
-	cmd.AddCommand(newRunCmd(cfg), newBackfillCmd(cfg), newNoopCmd(cfg))
+	cmd.AddCommand(newRunCmd(cfg, logger), newBackfillCmd(cfg, logger), newNoopCmd(cfg, logger))
 
 	return cmd
 }
 
-func newRunCmd(cfg config.Config) *cobra.Command {
+func newRunCmd(cfg config.Config, logger *slog.Logger) *cobra.Command {
 	return &cobra.Command{
 		Use:   "run",
 		Short: "Run configured pipelines",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg.SyncMode = "normal"
-			return run(context.Background(), cfg)
+			ctx := logging.NewContext(context.Background(), logger)
+			return run(ctx, cfg)
 		},
 	}
 }
 
-func newBackfillCmd(cfg config.Config) *cobra.Command {
+func newBackfillCmd(cfg config.Config, logger *slog.Logger) *cobra.Command {
 	return &cobra.Command{
 		Use:   "backfill",
 		Short: "Reset sync state and exit",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg.SyncMode = "backfill"
-			return run(context.Background(), cfg)
+			ctx := logging.NewContext(context.Background(), logger)
+			return run(ctx, cfg)
 		},
 	}
 }
 
-func newNoopCmd(cfg config.Config) *cobra.Command {
+func newNoopCmd(cfg config.Config, logger *slog.Logger) *cobra.Command {
 	return &cobra.Command{
 		Use:   "noop",
 		Short: "Validate configuration without running pipelines",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg.SyncMode = "noop"
-			return run(context.Background(), cfg)
+			ctx := logging.NewContext(context.Background(), logger)
+			return run(ctx, cfg)
 		},
 	}
 }
