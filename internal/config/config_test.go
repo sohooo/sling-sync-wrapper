@@ -97,6 +97,14 @@ func TestPipelinesDir(t *testing.T) {
 	}
 }
 
+func TestPipelinesBothSet(t *testing.T) {
+	dir := t.TempDir()
+	_, err := Pipelines(Config{PipelineDir: dir, PipelineFile: "p.yaml"})
+	if err == nil {
+		t.Fatalf("expected error when both PipelineDir and PipelineFile are set")
+	}
+}
+
 func TestPipelinesMissing(t *testing.T) {
 	_, err := Pipelines(Config{})
 	if err == nil {

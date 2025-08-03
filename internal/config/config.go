@@ -41,21 +41,25 @@ func FromEnv() Config {
 
 // Pipelines returns a list of pipeline files to run.
 func Pipelines(cfg Config) ([]string, error) {
-	var pipelines []string
-	if cfg.PipelineDir != "" {
+	if cfg.PipelineDir != "" && cfg.PipelineFile != "" {
+		return nil, fmt.Errorf("cannot set both PipelineDir and PipelineFile")
+	}
+
+	switch {
+	case cfg.PipelineDir != "":
 		files, err := filepath.Glob(filepath.Join(cfg.PipelineDir, "*.yaml"))
 		if err != nil {
 			return nil, err
 		}
-		pipelines = append(pipelines, files...)
-	} else if cfg.PipelineFile != "" {
-		pipelines = append(pipelines, cfg.PipelineFile)
+		sort.Strings(files)
+		if len(files) > 0 {
+			return files, nil
+		}
+	case cfg.PipelineFile != "":
+		return []string{cfg.PipelineFile}, nil
 	}
-	if len(pipelines) == 0 {
-		return nil, fmt.Errorf("no pipeline files found (set SLING_CONFIG or PIPELINE_DIR)")
-	}
-	sort.Strings(pipelines)
-	return pipelines, nil
+
+	return nil, fmt.Errorf("no pipeline files found (set SLING_CONFIG or PIPELINE_DIR)")
 }
 
 func getEnv(key, fallback string) string {
