@@ -25,11 +25,15 @@ run-local:
 
 
 quickstart: install-sling-cli install-duckdb-cli
+	@echo "All dependencies present. Running quickstart example..."
 	go run ./cmd/quickstart
+	@echo "Inspecting quickstart results..."
 	duckdb quickstart/command.db "select distinct synced_from from telemetry;"
 
 install-sling-cli:
+	@echo "Checking for Sling CLI..."
 	@if ! command -v sling >/dev/null 2>&1; then \
+		echo "Sling CLI not found. Fetching dependency..."; \
 	        if [ "$(SLING_CLI_VERSION)" = "latest" ]; then \
 	                URL="https://github.com/slingdata-io/sling-cli/releases/latest/download/sling_linux_amd64.tar.gz"; \
 	        else \
@@ -40,17 +44,19 @@ install-sling-cli:
 	        chmod +x /usr/local/bin/sling; \
 	        rm /tmp/sling_cli.tar.gz; \
 	else \
-	        echo "sling already installed"; \
+	        echo "Sling CLI found"; \
 	fi
 
 install-duckdb-cli:
+	@echo "Checking for DuckDB CLI..."
 	@if ! command -v duckdb >/dev/null 2>&1; then \
+		echo "DuckDB CLI not found. Fetching dependency..."; \
 	        curl -L https://github.com/duckdb/duckdb/releases/download/v$(DUCKDB_CLI_VERSION)/duckdb_cli-linux-amd64.zip -o /tmp/duckdb_cli.zip; \
 	        unzip -o /tmp/duckdb_cli.zip -d /usr/local/bin; \
 	        chmod +x /usr/local/bin/duckdb; \
 	        rm /tmp/duckdb_cli.zip; \
 	else \
-	        echo "duckdb already installed"; \
+	        echo "DuckDB CLI found"; \
 	fi
 
 fmt:
