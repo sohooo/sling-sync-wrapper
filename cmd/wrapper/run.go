@@ -26,7 +26,7 @@ var (
 func run(ctx context.Context, cfg config.Config) error {
 	pipelines, err := config.Pipelines(cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("load pipelines: %w", err)
 	}
 
 	tracer, shutdown := tracing.Init(ctx, "sling-sync-wrapper", cfg.MissionClusterID, cfg.OTELEndpoint)
@@ -66,7 +66,7 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 		if err := resetState(cfg); err != nil {
 			span.RecordError(err)
 			span.SetAttributes(attribute.String("status", "failed"))
-			return err
+			return fmt.Errorf("reset state: %w", err)
 		}
 		span.SetAttributes(attribute.String("status", "backfill"))
 		return nil
@@ -106,5 +106,8 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 	}
 
 	log.Printf("Pipeline %s completed in %.2fs (rows: %d, status: %s)", pipeline, duration.Seconds(), rowsSynced, statusFromErr(lastErr))
-	return lastErr
+	if lastErr != nil {
+		return fmt.Errorf("sling run failed: %w", lastErr)
+	}
+	return nil
 }

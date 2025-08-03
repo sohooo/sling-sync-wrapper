@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -14,7 +15,7 @@ func resetState(cfg config.Config) error {
 	u, err := url.Parse(cfg.StateLocation)
 	if err != nil {
 		log.Printf("Invalid state location: %v", err)
-		return err
+		return fmt.Errorf("parse state location: %w", err)
 	}
 	if u.Scheme != "" && u.Scheme != "file" {
 		log.Printf("State location scheme %q is not supported for backfill", u.Scheme)
@@ -31,7 +32,7 @@ func resetState(cfg config.Config) error {
 	}
 	if err := removeAllFunc(p); err != nil {
 		log.Printf("Failed to reset state: %v", err)
-		return err
+		return fmt.Errorf("remove state path %s: %w", p, err)
 	}
 	return nil
 }

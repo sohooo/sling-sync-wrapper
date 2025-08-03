@@ -15,7 +15,7 @@ func CreateMissionDB(path, cluster string, rows int) error {
 	os.Remove(path)
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
-		return err
+		return fmt.Errorf("open sqlite db %s: %w", path, err)
 	}
 	defer db.Close()
 
@@ -30,7 +30,7 @@ func CreateMissionDB(path, cluster string, rows int) error {
         ts text
     )`)
 	if err != nil {
-		return err
+		return fmt.Errorf("create telemetry table: %w", err)
 	}
 
 	for i := 0; i < rows; i++ {
@@ -39,7 +39,7 @@ func CreateMissionDB(path, cluster string, rows int) error {
 			48.0+float64(i), 16.0+float64(i), 100.0+float64(i),
 			95.0, "ok", fmt.Sprintf("2025-07-23T12:34:%02dZ", i))
 		if err != nil {
-			return err
+			return fmt.Errorf("insert telemetry row: %w", err)
 		}
 	}
 	return nil
@@ -50,7 +50,7 @@ func CreateMissionDB(path, cluster string, rows int) error {
 func EnsureCommandTable(path string, includeSyncedFrom bool) error {
 	db, err := sql.Open("duckdb", path)
 	if err != nil {
-		return err
+		return fmt.Errorf("open duckdb db %s: %w", path, err)
 	}
 	defer db.Close()
 
@@ -72,7 +72,10 @@ func EnsureCommandTable(path string, includeSyncedFrom bool) error {
     )`)
 
 	_, err = db.Exec(b.String())
-	return err
+	if err != nil {
+		return fmt.Errorf("ensure telemetry table: %w", err)
+	}
+	return nil
 }
 
 // Sync copies telemetry rows from a SQLite source to a DuckDB destination.
@@ -80,19 +83,19 @@ func EnsureCommandTable(path string, includeSyncedFrom bool) error {
 func Sync(srcPath, dstPath, mission string, includeSyncedFrom bool) (int, error) {
 	src, err := sql.Open("sqlite3", srcPath)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("open source sqlite db %s: %w", srcPath, err)
 	}
 	defer src.Close()
 
 	dst, err := sql.Open("duckdb", dstPath)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("open destination duckdb db %s: %w", dstPath, err)
 	}
 	defer dst.Close()
 
 	rows, err := src.Query(`select cluster_id, drone_id, lat, lon, alt, battery, status, ts from telemetry`)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("query source telemetry: %w", err)
 	}
 	defer rows.Close()
 
@@ -105,7 +108,7 @@ func Sync(srcPath, dstPath, mission string, includeSyncedFrom bool) (int, error)
 
 	stmt, err := dst.Prepare(b.String())
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("prepare insert statement: %w", err)
 	}
 	defer stmt.Close()
 
@@ -114,31 +117,34 @@ func Sync(srcPath, dstPath, mission string, includeSyncedFrom bool) (int, error)
 		var cID, dID, status, ts string
 		var lat, lon, alt, battery float64
 		if err := rows.Scan(&cID, &dID, &lat, &lon, &alt, &battery, &status, &ts); err != nil {
-			return count, err
+			return count, fmt.Errorf("scan row: %w", err)
 		}
 		args := []any{cID, dID, lat, lon, alt, battery, status, ts}
 		if includeSyncedFrom {
 			args = append(args, mission)
 		}
 		if _, err := stmt.Exec(args...); err != nil {
-			return count, err
+			return count, fmt.Errorf("insert row: %w", err)
 		}
 		count++
 	}
-	return count, rows.Err()
+	if err := rows.Err(); err != nil {
+		return count, fmt.Errorf("iterate rows: %w", err)
+	}
+	return count, nil
 }
 
 // CountRows returns the number of rows in the DuckDB telemetry table.
 func CountRows(path string) (int, error) {
 	db, err := sql.Open("duckdb", path)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("open duckdb db %s: %w", path, err)
 	}
 	defer db.Close()
 
 	var cnt int
 	if err := db.QueryRow(`select count(*) from telemetry`).Scan(&cnt); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("query row count: %w", err)
 	}
 	return cnt, nil
 }
