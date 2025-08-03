@@ -99,6 +99,16 @@ go build -o sling-sync-wrapper ./cmd/wrapper
   --otel-endpoint localhost:4317
 ```
 
+You can also rely solely on environment variables, which is helpful in Kubernetes deployments:
+
+```bash
+MISSION_CLUSTER_ID=mission-01 \
+SLING_CONFIG=./pipeline.yaml \
+SLING_STATE=file://./sling_state.json \
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317 \
+./sling-sync-wrapper run
+```
+
 Flags override environment variables, which remain available for compatibility.
 The wrapper automatically generates a unique `SYNC_JOB_ID` for each run.
 
