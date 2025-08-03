@@ -30,6 +30,43 @@ const (
 
 var slingCLITimeout = 30 * time.Minute
 
+// processLogLine parses a JSON line from the Sling CLI and updates the span.
+// It returns the number of rows contained in the log or an error if the line
+// could not be parsed.
+func processLogLine(line string, span trace.Span) (int, error) {
+	var logEntry SlingLogLine
+	if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
+		span.RecordError(err)
+		span.AddEvent("invalid JSON log line",
+			trace.WithAttributes(attribute.String("line", line)))
+		return 0, err
+	}
+
+	span.AddEvent(logEntry.Message,
+		trace.WithAttributes(attribute.String("log.level", logEntry.Level)))
+	if logEntry.Error != "" {
+		span.RecordError(fmt.Errorf("%s", logEntry.Error))
+	}
+
+	return logEntry.Rows, nil
+}
+
+// checkSlingErrors combines errors from the scanner, command wait, and context
+// to produce a single error result.
+func checkSlingErrors(ctx context.Context, cmd *exec.Cmd, scanErr error) error {
+	if scanErr != nil {
+		cmd.Wait() // ensure process resources are released
+		return scanErr
+	}
+	if err := cmd.Wait(); err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return err
+	}
+	return ctx.Err()
+}
+
 func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID string, span trace.Span) (int, error) {
 	ctx, cancel := context.WithTimeout(ctx, slingCLITimeout)
 	defer cancel()
@@ -56,39 +93,20 @@ func runSlingOnce(ctx context.Context, slingBin, pipeline, stateLocation, jobID 
 	scanner.Buffer(buf, maxScanTokenSize)
 	rowsSynced := 0
 	for scanner.Scan() {
-		line := scanner.Text()
-		var logEntry SlingLogLine
-		if err := json.Unmarshal([]byte(line), &logEntry); err == nil {
-			span.AddEvent(logEntry.Message,
-				trace.WithAttributes(attribute.String("log.level", logEntry.Level)))
-			if logEntry.Rows > 0 {
-				rowsSynced += logEntry.Rows
-			}
-			if logEntry.Error != "" {
-				span.RecordError(fmt.Errorf("%s", logEntry.Error))
-			}
-		} else {
+		rows, err := processLogLine(scanner.Text(), span)
+		if err != nil {
 			log.Printf("failed to parse Sling log line: %v", err)
-			span.RecordError(err)
-			span.AddEvent("invalid JSON log line",
-				trace.WithAttributes(attribute.String("line", line)))
+			continue
+		}
+		if rows > 0 {
+			rowsSynced += rows
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		cmd.Wait() // ensure process resources are released
+	if err := checkSlingErrors(ctx, cmd, scanner.Err()); err != nil {
 		return rowsSynced, err
 	}
 
-	if err := cmd.Wait(); err != nil {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return rowsSynced, ctxErr
-		}
-		return rowsSynced, err
-	}
-	if ctxErr := ctx.Err(); ctxErr != nil {
-		return rowsSynced, ctxErr
-	}
 	return rowsSynced, nil
 }
 
