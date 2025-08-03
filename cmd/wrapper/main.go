@@ -63,7 +63,9 @@ func runPipeline(ctx context.Context, tracer trace.Tracer, cfg config.Config, pi
 
 	startTime := time.Now()
 
+	prevTimeout := slingCLITimeout
 	slingCLITimeout = cfg.SlingTimeout
+	defer func() { slingCLITimeout = prevTimeout }()
 
 	if cfg.SyncMode == "noop" {
 		log.Printf("[NOOP] Would run Sling pipeline %s", pipeline)

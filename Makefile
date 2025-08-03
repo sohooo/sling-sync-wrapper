@@ -64,3 +64,9 @@ tidy:
 
 test:
 	go test ./...
+
+check:
+	$(MAKE) fmt
+	$(MAKE) vet
+	$(MAKE) tidy
+	$(MAKE) test

@@ -174,9 +174,7 @@ A pre-built Grafana dashboard is provided:
 Run the core checks and build the Docker image with:
 
 ```bash
-make fmt    # format Go code
-make vet    # run static analysis
-make test   # run unit tests
+make check  # run fmt, vet, tidy, and test
 make docker # build the Docker image
 ```
 
@@ -187,6 +185,7 @@ make docker # build the Docker image
 Common development tasks are available via the Makefile:
 
 ```bash
+make check # run fmt, vet, tidy, and unit tests
 make fmt   # format Go code
 make vet   # run go vet
 make tidy  # tidy module dependencies
