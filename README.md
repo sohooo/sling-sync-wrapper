@@ -152,17 +152,17 @@ The wrapper is configured using the following environment variables:
 
 ## Kubernetes Deployment
 
-### Apply manifests
+### Install with Helm
 
 ```bash
-kubectl apply -f deploy/deployment.yaml
+helm install sling-sync-wrapper ./helm/sling-sync-wrapper
 ```
 
 This will deploy:
 
-- OpenTelemetry Collector (Deployment + Service).
+- OpenTelemetry Collector (Deployment + Service) and its ConfigMap.
 - Sling Sync Job (CronJob) running every 5 minutes.
-- Pipeline ConfigMap (sling-pipelines) for one or more pipeline YAMLs.
+- Pipeline ConfigMap for one or more pipeline YAMLs.
 
 Configure the CronJob using the environment variables described in the [Environment Variables](#environment-variables) section.
 
